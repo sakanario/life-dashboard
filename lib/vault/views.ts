@@ -164,6 +164,7 @@ export async function getGoals() {
       questDone: done,
       questTotal: qs.length,
       links: linked.map((p) => ({ slug: p.slug, title: p.title, type: p.type, isArchived: p.isArchived })),
+      milestones: v.quests.filter((q) => q.file === g.file).sort(byFile),
     };
   });
 }

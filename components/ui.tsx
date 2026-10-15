@@ -31,5 +31,5 @@ export function Bar({ value, good }: { value: number; good?: boolean }) {
   );
 }
 
-/** Tombol yang nulis ke vault belum aktif di Fase 1 (read-only). */
-export const RO_TITLE = "Read-only dulu (Fase 1). Aksi tulis nyusul.";
+/** Tombol tulis yang belum diaktifin (fasenya belum dikerjain). */
+export const RO_TITLE = "Belum bisa dari app (nyusul di fase berikutnya).";

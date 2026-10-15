@@ -15,6 +15,7 @@ export type QuestRow = {
   done: boolean;
   tags: string[];
   depth: number;
+  raw?: string;
 };
 
 /**
@@ -140,11 +141,13 @@ export function QuestItem<T extends QuestRow>({
 export function AddQuestForm({
   inputId,
   project,
+  goal,
   options,
   onAdded,
 }: {
   inputId: string;
   project?: string;
+  goal?: string;
   options?: { slug: string; title: string }[];
   onAdded?: (project: string | null) => void;
 }) {
@@ -157,10 +160,10 @@ export function AddQuestForm({
   async function submit() {
     const t = text.trim();
     if (!t || busy) return;
-    const target = project ?? (dest || null);
+    const target = project ?? (goal ? null : dest || null);
     setBusy(true);
     try {
-      const r = await api.addQuest(t, target);
+      const r = await api.addQuest(t, { project: target, goal: goal ?? null });
       toast("Quest ditambah", `${r.file}:${r.line}`);
       setText("");
       onAdded?.(target);

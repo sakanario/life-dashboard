@@ -513,3 +513,30 @@ a.btn{text-decoration:none;color:inherit}
 .tree a.f{text-decoration:none}
 .ro-note{font-size:.76rem;color:var(--muted)}
 .proj .next span.muted{flex:none}
+
+/* Fase 3: atur quest, status, proyek baru */
+.task.has-act{grid-template-columns:22px minmax(0,1fr) auto}
+.task.has-act .t-edit{grid-column:2 / -1;display:flex;gap:6px;align-items:center;min-width:0}
+.t-edit input{flex:1;min-width:0;border:0;background:var(--field);color:var(--ink);border-radius:var(--r-sm);padding:6px 10px;box-shadow:inset 0 1px 2px rgba(43,35,80,.06)}
+.t-act{display:flex;gap:4px;align-items:flex-start;flex-wrap:wrap;justify-content:flex-end}
+.t-act .btn{padding:3px 10px;font-size:.78rem}
+.t-act .btn.ic{padding:3px 9px;font-family:var(--f-mono)}
+.t-act .btn:disabled,.t-edit .btn:disabled{opacity:.4;cursor:default}
+.t-confirm{margin-top:8px;padding:10px 12px}
+.tabs .manage-tog{margin:0 0 6px auto;align-self:center;border-bottom:0;color:var(--ink)}
+.tabs .manage-tog[aria-pressed="true"]{background:var(--primary-bg);color:var(--primary-ink)}
+.sel{border:0;background:var(--field);color:var(--ink);border-radius:99px;padding:4px 10px;font:inherit;font-size:.84rem;box-shadow:inset 0 1px 2px rgba(43,35,80,.06);color-scheme:light dark}
+.status-sel{font-weight:600}
+.status-sel.st-active{color:var(--good)} .status-sel.st-paused{color:var(--warn)} .status-sel.st-idea{color:var(--muted)} .status-sel.st-done{color:var(--accent-text)}
+.status-sel option{color:var(--ink)}
+.np-row{display:flex;flex-wrap:wrap;gap:12px 20px}
+.np-row .sel{max-width:260px}
+.goal-qs{border-top:1px solid var(--line);padding-top:8px;display:flex;flex-direction:column;gap:4px}
+.goal-qs .tasks .task{padding:6px 0}
+.goal-head{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+@media (max-width:560px){
+  .task.has-act{grid-template-columns:22px minmax(0,1fr)}
+  .task.has-act .t-act{grid-column:2;justify-content:flex-start}
+  .task.has-act .t-edit{flex-wrap:wrap}
+}
+.goal-off{opacity:.72}

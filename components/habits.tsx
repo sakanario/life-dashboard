@@ -59,14 +59,20 @@ export function useHabitSetter(date: string) {
   return { stateOf, set };
 }
 
-/** Fokus ke elemen pertama yang ada & keliatan (dipanggil habis render ulang). */
-export function focusFirst(ids: (string | null | undefined)[]) {
-  setTimeout(() => {
+/**
+ * Fokus ke elemen pertama yang ada & keliatan (dipanggil habis render ulang).
+ * `waitMs` > 0: tunggu dulu sampai salah satunya muncul (mis. habis router.refresh, ID quest berubah).
+ */
+export function focusFirst(ids: (string | null | undefined)[], waitMs = 0) {
+  const t0 = Date.now();
+  const tryFocus = () => {
     for (const id of ids) {
       const x = id ? document.getElementById(id) : null;
       if (x && x.getClientRects().length) return x.focus();
     }
-  }, 0);
+    if (Date.now() - t0 < waitMs) setTimeout(tryFocus, 50);
+  };
+  setTimeout(tryFocus, 0);
 }
 
 /**

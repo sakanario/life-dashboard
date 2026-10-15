@@ -1,16 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState, useTransition } from "react";
 import { NavIcon } from "@/components/icons";
 import { focusFirst } from "@/components/habits";
-import { AddQuestForm, QuestItem, useQuestToggle } from "@/components/quest";
-import { Bar, RO_TITLE } from "@/components/ui";
+import { AddQuestForm, useQuestToggle } from "@/components/quest";
+import { QuestList } from "@/components/quest-manage";
+import { toast } from "@/components/toast";
+import { Bar } from "@/components/ui";
+import { api } from "@/lib/client-api";
 import type { getProjects } from "@/lib/vault/views";
 
 type P = Awaited<ReturnType<typeof getProjects>>[number];
 type Filter = "all" | "personal" | "work" | "archived";
+type GoalOpt = { slug: string; title: string };
 
+const STATUSES = ["idea", "active", "paused", "done"] as const;
 const BULAN = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
 const fmtDate = (s: string | null) => {
   if (!s || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return "—";
@@ -25,18 +31,78 @@ function syncUrl(f: Filter, p: string | null) {
   else u.searchParams.set("f", f);
   if (p) u.searchParams.set("p", p);
   else u.searchParams.delete("p");
-  history.replaceState(history.state, "", u);
+  // state null: biar ikut ke-sync ke router Next (kalau ngoper history.state, router.refresh balikin URL lama)
+  history.replaceState(null, "", u);
 }
 
-export function ProjectsView({ projects, initialFilter, initialOpen }: { projects: P[]; initialFilter: Filter; initialOpen: string | null }) {
+/** Aksi tulis kecil: panggil API, toast error, refresh data server. */
+function useWrite() {
+  const router = useRouter();
+  const [, startTransition] = useTransition();
+  const [busy, setBusy] = useState(false);
+  async function run<R>(fn: () => Promise<R>, after?: (r: R) => void) {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const r = await fn();
+      after?.(r);
+      startTransition(() => router.refresh());
+    } catch (e) {
+      toast((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  return { busy, run };
+}
+
+export function ProjectsView({
+  projects,
+  goals,
+  initialFilter,
+  initialOpen,
+}: {
+  projects: P[];
+  goals: GoalOpt[];
+  initialFilter: Filter;
+  initialOpen: string | null;
+}) {
   const [f, setF] = useState<Filter>(initialFilter);
   const [openSlug, setOpenSlug] = useState<string | null>(initialOpen);
+  const [creating, setCreating] = useState(false);
+  // navigasi ke ?p= / ?f= lain (palette, Hari ini) → ikutin. Bukan remount, biar state drawer ga ilang tiap refresh
+  const [prev, setPrev] = useState({ f: initialFilter, p: initialOpen });
+  if (prev.f !== initialFilter || prev.p !== initialOpen) {
+    setPrev({ f: initialFilter, p: initialOpen });
+    setF(initialFilter);
+    setOpenSlug(initialOpen);
+  }
+  const { run } = useWrite();
+
   const arch = projects.filter((p) => p.isArchived);
   const list = projects.filter((p) => !p.isArchived && (f === "all" || p.type === f));
   const opened = projects.find((p) => p.slug === openSlug) ?? null;
 
   const setFilter = (x: Filter) => { setF(x); syncUrl(x, openSlug); };
   const open = (s: string | null) => { setOpenSlug(s); syncUrl(f, s); };
+
+  const restore = (p: P) =>
+    run(
+      () => api.restoreProject(p.slug),
+      (r) => toast("Proyek dipulihkan (paused)", `${r.from} → ${r.to}`),
+    );
+
+  const archive = (p: P) =>
+    run(
+      () => api.archiveProject(p.slug),
+      (r) => {
+        open(null);
+        toast("Proyek diarsip", `${r.from} → ${r.to}`, {
+          label: "Urungkan",
+          fn: () => void run(() => api.restoreProject(p.slug, r.prevStatus), (x) => toast("Arsip dibatalin", `${x.from} → ${x.to}`)),
+        });
+      },
+    );
 
   return (
     <>
@@ -60,11 +126,27 @@ export function ProjectsView({ projects, initialFilter, initialOpen }: { project
               </button>
             ))}
           </div>
-          <button className="btn" type="button" disabled title={RO_TITLE}>
+          <button className="btn" type="button" id="newproj-btn" aria-expanded={creating} aria-controls="newproj" onClick={() => setCreating(!creating)}>
             + Proyek
           </button>
         </div>
       </div>
+
+      {creating ? (
+        <NewProject
+          goals={goals}
+          defaultType={f === "work" ? "work" : "personal"}
+          onCancel={() => {
+            setCreating(false);
+            focusFirst(["newproj-btn"]);
+          }}
+          onCreated={(slug) => {
+            setCreating(false);
+            if (f === "archived") setFilter("all");
+            open(slug);
+          }}
+        />
+      ) : null}
 
       {f === "archived" ? (
         <section className="panel" aria-label="Daftar proyek diarsip">
@@ -85,7 +167,7 @@ export function ProjectsView({ projects, initialFilter, initialOpen }: { project
                       <span className="src">{p.dir}/</span>
                     </div>
                   </div>
-                  <button className="btn sm" type="button" disabled title={RO_TITLE}>
+                  <button className="btn sm" type="button" onClick={() => void restore(p)}>
                     Pulihkan
                   </button>
                 </li>
@@ -139,14 +221,114 @@ export function ProjectsView({ projects, initialFilter, initialOpen }: { project
         </div>
       )}
 
-      {opened ? <Drawer p={opened} onClose={() => open(null)} /> : null}
+      {opened ? <Drawer key={opened.slug} p={opened} onClose={() => open(null)} onArchive={() => archive(opened)} onRestore={() => restore(opened)} /> : null}
     </>
   );
 }
 
-function Drawer({ p, onClose }: { p: P; onClose: () => void }) {
+function NewProject({
+  goals,
+  defaultType,
+  onCancel,
+  onCreated,
+}: {
+  goals: GoalOpt[];
+  defaultType: "personal" | "work";
+  onCancel: () => void;
+  onCreated: (slug: string) => void;
+}) {
+  const [title, setTitle] = useState("");
+  const [type, setType] = useState<"personal" | "work">(defaultType);
+  const [status, setStatus] = useState("active");
+  const [goal, setGoal] = useState("");
+  const [desc, setDesc] = useState("");
+  const { busy, run } = useWrite();
+
+  return (
+    <section className="panel" id="newproj" aria-labelledby="newproj-h">
+      <form
+        className="jform"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!title.trim()) return;
+          void run(
+            () => api.createProject({ title, type, status, goal: goal || null, desc }),
+            (r) => {
+              toast("Proyek dibuat", r.file);
+              onCreated(r.slug);
+            },
+          );
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") {
+            e.preventDefault();
+            onCancel();
+          }
+        }}
+      >
+        <div className="panel-h" style={{ marginBottom: 0 }}>
+          <h2 id="newproj-h">Proyek baru</h2>
+          <span className="src">Projects/&lt;slug&gt;/README.md</span>
+        </div>
+        <div className="jfield">
+          <label htmlFor="np-title">Judul</label>
+          <input type="text" id="np-title" value={title} maxLength={120} autoFocus autoComplete="off" placeholder="Nama proyek" onChange={(e) => setTitle(e.target.value)} />
+        </div>
+        <div className="np-row">
+          <div className="jfield">
+            <label id="np-type">Type</label>
+            <div className="seg" role="group" aria-labelledby="np-type">
+              {(["personal", "work"] as const).map((t) => (
+                <button key={t} type="button" aria-pressed={type === t} onClick={() => setType(t)}>
+                  {t}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="jfield">
+            <label htmlFor="np-status">Status</label>
+            <select id="np-status" className="sel" value={status} onChange={(e) => setStatus(e.target.value)}>
+              {STATUSES.map((s) => (
+                <option key={s}>{s}</option>
+              ))}
+            </select>
+          </div>
+          <div className="jfield">
+            <label htmlFor="np-goal">Goal</label>
+            <select id="np-goal" className="sel" value={goal} onChange={(e) => setGoal(e.target.value)}>
+              <option value="">—</option>
+              {goals.map((g) => (
+                <option key={g.slug} value={g.slug}>
+                  {g.title}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className="jfield">
+          <label htmlFor="np-desc">Ringkasan</label>
+          <textarea id="np-desc" rows={2} value={desc} placeholder="1–3 kalimat (boleh kosong)" onChange={(e) => setDesc(e.target.value)} style={{ minHeight: "4em" }} />
+        </div>
+        <div className="jfoot" style={{ justifyContent: "flex-end" }}>
+          <button className="btn" type="button" onClick={onCancel}>
+            Batal
+          </button>
+          <button className="btn primary" type="submit" disabled={busy || !title.trim()}>
+            {busy ? "Bikin…" : "Bikin proyek"}
+          </button>
+        </div>
+      </form>
+    </section>
+  );
+}
+
+function Drawer({ p, onClose, onArchive, onRestore }: { p: P; onClose: () => void; onArchive: () => void; onRestore: () => void }) {
   const [tab, setTab] = useState<"tasks" | "notes">("tasks");
+  const [manage, setManage] = useState(false);
+  const [askArchive, setAskArchive] = useState(false);
   const { isDone, toggle } = useQuestToggle();
+  const { busy, run } = useWrite();
+  const [status, setStatus] = useState<string | null>(null); // optimistis sampai data server baru datang
   useEffect(() => {
     const k = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     document.addEventListener("keydown", k);
@@ -154,6 +336,7 @@ function Drawer({ p, onClose }: { p: P; onClose: () => void }) {
   }, [onClose]);
 
   const arc = p.isArchived;
+  const shownStatus = status ?? p.status;
   return (
     <div className="scrim" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <aside className="drawer" role="dialog" aria-modal="true" aria-label={p.title + (arc ? " (diarsip)" : "")}>
@@ -169,7 +352,7 @@ function Drawer({ p, onClose }: { p: P; onClose: () => void }) {
         {arc ? (
           <div className="arc-banner" role="note">
             <span>Diarsip {fmtDate(p.archived)}. Read-only.</span>
-            <button className="btn sm" type="button" disabled title={RO_TITLE}>
+            <button className="btn sm" type="button" onClick={onRestore}>
               Pulihkan
             </button>
           </div>
@@ -179,14 +362,31 @@ function Drawer({ p, onClose }: { p: P; onClose: () => void }) {
           <dd>
             <span className={"chip " + p.type}>{p.type}</span>
           </dd>
-          <dt>status</dt>
+          <dt>
+            <label htmlFor="pstatus">status</label>
+          </dt>
           <dd>
             {arc ? (
               <span className="chip arc">archived</span>
             ) : (
-              <span className={"status st-" + p.status} title={RO_TITLE}>
-                {p.status}
-              </span>
+              <select
+                id="pstatus"
+                className={"sel status-sel st-" + shownStatus}
+                value={shownStatus}
+                disabled={busy}
+                onChange={(e) => {
+                  const s = e.target.value;
+                  setStatus(s);
+                  void run(
+                    () => api.setProjectStatus(p.slug, s),
+                    (r) => toast("Status jadi " + r.status, r.file + " · status"),
+                  ).finally(() => setStatus(null));
+                }}
+              >
+                {STATUSES.map((s) => (
+                  <option key={s}>{s}</option>
+                ))}
+              </select>
             )}
           </dd>
           <dt>goal</dt>
@@ -206,34 +406,38 @@ function Drawer({ p, onClose }: { p: P; onClose: () => void }) {
           <button type="button" role="tab" aria-selected={tab === "notes"} onClick={() => setTab("notes")}>
             Catatan ({p.files.length})
           </button>
+          {tab === "tasks" && !arc && p.quests.length ? (
+            <button
+              type="button"
+              className="btn sm manage-tog"
+              id="dmanage"
+              aria-pressed={manage}
+              title="Ubah urutan, edit teks, atau hapus quest"
+              onClick={() => setManage(!manage)}
+            >
+              {manage ? "Selesai atur" : "Atur"}
+            </button>
+          ) : null}
         </div>
         {tab === "tasks" ? (
           <>
             {p.quests.length ? (
-              <ul className="tasks">
-                {p.quests.map((q) => (
-                  <QuestItem
-                    key={q.id}
-                    q={q}
-                    done={isDone(q)}
-                    idPrefix="dtk-"
-                    readOnly={arc}
-                    readOnlyTitle="Proyek diarsip (read-only)"
-                    onToggle={(x) => {
-                      toggle(x);
-                      focusFirst(["dtk-" + x.id]);
-                    }}
-                  />
-                ))}
-              </ul>
+              <QuestList
+                quests={p.quests}
+                idPrefix="dtk-"
+                isDone={isDone}
+                onToggle={toggle}
+                manage={manage}
+                readOnly={arc}
+                readOnlyTitle="Proyek diarsip (read-only)"
+                fallbackFocus="ptext"
+              />
             ) : (
               <p className="muted" style={{ margin: 0, fontSize: ".86rem" }}>
                 Belum ada quest.
               </p>
             )}
-            {arc ? null : (
-              <AddQuestForm inputId="ptext" project={p.slug} />
-            )}
+            {arc ? null : <AddQuestForm inputId="ptext" project={p.slug} />}
           </>
         ) : (
           <ul className="file-list">
@@ -250,9 +454,42 @@ function Drawer({ p, onClose }: { p: P; onClose: () => void }) {
         )}
         {arc ? null : (
           <div className="drawer-foot">
-            <button className="btn sm danger" type="button" disabled title={RO_TITLE}>
+            <button
+              className="btn sm danger"
+              type="button"
+              id="darchive"
+              aria-expanded={askArchive}
+              aria-controls="darcbox"
+              onClick={() => {
+                setAskArchive(true);
+                focusFirst(["darcyes"]);
+              }}
+            >
               Arsipkan
             </button>
+            {askArchive ? (
+              <div className="confirm" id="darcbox" role="group" aria-labelledby="darcmsg">
+                <p id="darcmsg">
+                  Arsipkan <b>{p.title}</b>? Folder dipindah ke <span className="mono">Archive/Projects/{p.slug}/</span>.{" "}
+                  {p.stats.open ? `${p.stats.open} quest terbuka ikut diarsip dan ga muncul di Hari ini lagi.` : "Ga ada quest terbuka."}
+                </p>
+                <div className="row">
+                  <button className="btn sm danger" type="button" id="darcyes" onClick={onArchive}>
+                    Ya, arsipkan
+                  </button>
+                  <button
+                    className="btn sm"
+                    type="button"
+                    onClick={() => {
+                      setAskArchive(false);
+                      focusFirst(["darchive"]);
+                    }}
+                  >
+                    Batal
+                  </button>
+                </div>
+              </div>
+            ) : null}
           </div>
         )}
       </aside>

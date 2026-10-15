@@ -1,10 +1,8 @@
-import Link from "next/link";
 import { Suspense } from "react";
-import { ArcChip, Bar, Loading, RO_TITLE } from "@/components/ui";
+import { Loading } from "@/components/ui";
 import { fmtDate } from "@/lib/vault/dates";
 import { getGoals } from "@/lib/vault/views";
-
-type G = Awaited<ReturnType<typeof getGoals>>[number];
+import { GoalCard, GoalsHead } from "./goal-ui";
 
 const HORIZON = [
   { key: "vision", label: "Big vision", sub: "jangka panjang" },
@@ -13,64 +11,12 @@ const HORIZON = [
   { key: "quarter", label: "Kuartal ini", sub: "" },
 ] as const;
 
-const fmtNum = (n: number) => (Number.isInteger(n) ? n.toLocaleString("id-ID") : n.toLocaleString("id-ID", { maximumFractionDigits: 2 }));
-
-function GoalCard({ g }: { g: G }) {
-  const m = g.metric;
-  return (
-    <article className="panel goal">
-      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-        <span className="chip">{g.horizon}</span>
-        {g.status !== "active" ? <span className={"status " + (g.status === "done" ? "st-done" : "st-idea")}>{g.status}</span> : null}
-        <Link className="src" style={{ marginLeft: "auto", textDecoration: "none" }} href={`/notes?path=${encodeURIComponent(g.file)}`}>
-          {g.file}
-        </Link>
-      </div>
-      <h3>{g.title}</h3>
-      {m && m.current !== null ? (
-        <div className="stat-row">
-          <b className="tnum">{fmtNum(m.current)}</b>
-          <span className="muted" style={{ fontSize: ".82rem" }}>
-            {m.target !== null ? `/ ${fmtNum(m.target)} ` : ""}
-            {m.label}
-          </span>
-        </div>
-      ) : null}
-      <Bar value={g.progress} good />
-      <div className="muted" style={{ fontSize: ".82rem" }}>
-        {g.desc || (m ? "" : g.questTotal ? `${g.questDone}/${g.questTotal} quest selesai di proyek terkait.` : "Belum ada quest atau metric. Tambah field metric di frontmatter.")}
-        {g.target ? <span className="mono"> · target {fmtDate(g.target)} {g.target.slice(0, 4)}</span> : null}
-      </div>
-      {g.links.length ? (
-        <div className="links">
-          {g.links.map((p) => (
-            <span key={p.slug} style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
-              <Link className={"chip " + (p.isArchived ? "" : p.type)} href={`/projects?p=${p.slug}`} style={{ textDecoration: "none" }}>
-                {p.title}
-              </Link>
-              <ArcChip show={p.isArchived} />
-            </span>
-          ))}
-        </div>
-      ) : null}
-    </article>
-  );
-}
-
 async function Goals() {
   const goals = await getGoals();
   const year = new Date().getFullYear();
   return (
     <>
-      <div className="head">
-        <div>
-          <div className="eyebrow">Goals/</div>
-          <h1>Arah hidup</h1>
-        </div>
-        <button className="btn" type="button" disabled title={RO_TITLE}>
-          + Goal
-        </button>
-      </div>
+      <GoalsHead />
       <section className="panel">
         {HORIZON.map((h) => {
           const gs = goals.filter((g) => g.horizon === h.key);

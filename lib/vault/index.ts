@@ -57,6 +57,25 @@ function ensureWatcher() {
   });
 }
 
+/**
+ * Jalanin `fn` dengan watcher dimatiin dulu. Di Windows folder yang lagi di-watch sering
+ * ga bisa di-rename (EPERM), jadi pindah folder (arsip proyek) lewat sini.
+ */
+export async function withWatcherPaused<T>(paths: string[], fn: () => Promise<T>): Promise<T> {
+  if (S.watcher) {
+    const w = S.watcher;
+    S.watcher = null;
+    await w.close();
+  }
+  try {
+    return await fn();
+  } finally {
+    S.dirty = true;
+    ensureWatcher();
+    S.bus.emit("change", { type: "change", paths, at: Date.now() } satisfies VaultEvent);
+  }
+}
+
 /** Tandai index basi (dipanggil writer habis nulis, biar request berikutnya baca ulang). */
 export function markDirty() {
   S.dirty = true;
@@ -167,7 +186,8 @@ function build(): VaultIndex {
       status: (["active", "done", "dropped"].includes(String(d.fm.status)) ? d.fm.status : "active") as Goal["status"],
       target: str(d.fm.target),
       metric: mt && typeof mt === "object" ? { label: str(mt.label) ?? "", current: num(mt.current), target: num(mt.target) } : null,
-      desc: plain(d.body.split(/^\s*[-*+] \[[ xX]\]/m)[0]),
+      // deskripsi = teks sebelum milestone pertama atau heading "## Quest" (yang ditambah app)
+      desc: plain(d.body.split(/^\s*[-*+] \[[ xX]\]|^##\s+Quest\b/im)[0]),
       file: d.path,
     });
   }

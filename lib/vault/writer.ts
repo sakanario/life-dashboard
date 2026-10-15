@@ -1,12 +1,12 @@
 import "server-only";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { getVault, markDirty } from "./index";
+import { getVault, markDirty, withWatcherPaused } from "./index";
 import { isIsoDate, todayIso } from "./dates";
 import { doneLine, findDoneSection, journalPath, QUEST_DONE_TITLE } from "./journal-format";
 import { parseMd, parseQuests } from "./parse";
 import { safeResolve } from "./paths";
-import type { HabitState, VaultIndex } from "./types";
+import type { HabitState, ProjectStatus, VaultIndex } from "./types";
 
 /**
  * Satu-satunya pintu tulis ke vault (REQUIREMENTS §8):
@@ -140,6 +140,18 @@ function setFmField(d: Doc, key: string, raw: string) {
   let j = at + 1;
   while (j < end && /^\s+\S/.test(d.lines[j])) j++;
   d.lines.splice(at, j - at, line);
+}
+
+/** Hapus satu field frontmatter (plus lanjutan block-style di bawahnya). */
+function removeFmField(d: Doc, key: string) {
+  const end = fmEnd(d.lines);
+  if (end < 0) return;
+  const re = new RegExp(`^${key}\\s*:`);
+  const i = d.lines.slice(1, end).findIndex((l) => re.test(l));
+  if (i < 0) return;
+  let j = i + 2;
+  while (j < end && /^\s+\S/.test(d.lines[j])) j++;
+  d.lines.splice(i + 1, j - i - 1);
 }
 
 const fmOf = (d: Doc) => parseMd(docText(d)).fm;
@@ -352,11 +364,9 @@ export async function toggleQuest(id: string, input: { text: string; done: boole
   });
 }
 
-/** Tambah quest di akhir seksi "## Quest" (Uncategorize atau README proyek). */
-export async function addQuest(input: { text: string; project: string | null }) {
-  const text = input.text.replace(/[\r\n]+/g, " ").trim();
-  if (!text) throw new WriteError(400, "Teks quest kosong");
-  if (text.length > 500) throw new WriteError(400, "Teks quest kepanjangan");
+/** Tambah quest di akhir seksi "## Quest" (Uncategorize, README proyek, atau file goal). */
+export async function addQuest(input: { text: string; project: string | null; goal?: string | null }) {
+  const text = cleanQuestText(input.text);
   const v = await getVault();
   let rel = "Uncategorize.md";
   if (input.project) {
@@ -364,6 +374,10 @@ export async function addQuest(input: { text: string; project: string | null }) 
     if (!p) throw new WriteError(404, "Proyek tidak ketemu");
     if (p.isArchived) throw new WriteError(403, "Proyek diarsip (read-only)");
     rel = p.file;
+  } else if (input.goal) {
+    const g = v.goals.find((x) => x.slug === input.goal);
+    if (!g) throw new WriteError(404, "Goal tidak ketemu");
+    rel = g.file;
   }
   const today = todayIso();
   return withLocks([rel], async () => {
@@ -389,5 +403,274 @@ export async function addQuest(input: { text: string; project: string | null }) 
     }
     await writeDoc(d);
     return { id: `${rel}:${at + 1}`, file: rel, line: at + 1 };
+  });
+}
+
+/* ===== kelola quest (Fase 3): edit teks, pindah urutan, hapus ===== */
+
+function cleanQuestText(raw: string) {
+  const text = raw.replace(/[\r\n]+/g, " ").trim();
+  if (!text) throw new WriteError(400, "Teks quest kosong");
+  if (text.length > 500) throw new WriteError(400, "Teks quest kepanjangan");
+  return text;
+}
+
+const indentOf = (l: string) => /^\s*/.exec(l)![0].replace(/\t/g, "  ").length;
+const isQuestLine = (l: string | undefined) => l !== undefined && QUEST_LINE.test(l);
+
+/** Akhir blok quest [i, end): baris quest + baris di bawahnya yang lebih menjorok (subquest / catatan). */
+function blockEnd(lines: string[], i: number) {
+  const ind = indentOf(lines[i]);
+  let j = i + 1;
+  while (j < lines.length && lines[j].trim() !== "" && indentOf(lines[j]) > ind) j++;
+  return j;
+}
+
+/** Awal blok quest sejajar (indentasi sama) tepat di atasnya, atau -1 kalau ga ada. */
+function prevSibling(lines: string[], i: number) {
+  const ind = indentOf(lines[i]);
+  let k = i - 1;
+  while (k >= 0 && lines[k].trim() !== "" && indentOf(lines[k]) > ind) k--;
+  return k >= 0 && isQuestLine(lines[k]) && indentOf(lines[k]) === ind ? k : -1;
+}
+
+/** Buka file quest (dikunci + cek arsip), cari barisnya, jalanin `fn`, tulis. README proyek ikut di-bump `updated`. */
+async function withQuest<T>(id: string, text: string, fn: (d: Doc, i: number) => T) {
+  const cut = id.lastIndexOf(":");
+  const file = id.slice(0, cut), line = Number(id.slice(cut + 1));
+  if (cut < 1 || !Number.isInteger(line) || line < 1) throw new WriteError(400, "ID quest tidak valid");
+  const rel = resolveMd(file).rel;
+  const v = await getVault();
+  const { proj } = questCtx(v, rel);
+  const today = todayIso();
+  return withLocks(proj ? [rel, proj.file] : [rel], async () => {
+    const d = await readDoc(rel);
+    if (!d.exists) throw new WriteError(404, "File quest tidak ketemu");
+    // frontmatter duluan: kalau field `updated` baru ditambah, barisnya geser & locateQuest cari ulang pakai teks
+    if (proj?.file === rel && String(fmOf(d).updated ?? "") !== today) setFmField(d, "updated", today);
+    const out = fn(d, locateQuest(d, rel, line, text));
+    await writeDoc(d);
+    if (proj && proj.file !== rel) await bumpUpdated(proj.file, today);
+    return out;
+  });
+}
+
+/** Ganti teks quest. Status centang & `done:` dipertahankan. */
+export async function editQuest(id: string, input: { text: string; newText: string }) {
+  const next = cleanQuestText(input.newText).replace(DONE_TAG, "").trim();
+  if (!next) throw new WriteError(400, "Teks quest kosong");
+  return withQuest(id, input.text, (d, i) => {
+    const m = QUEST_LINE.exec(d.lines[i])!;
+    const done = /(?:^|\s)(done:\d{4}-\d{2}-\d{2})\b/.exec(m[4])?.[1];
+    d.lines[i] = `${m[1]}${m[2]}${m[3]}${next}${done ? " " + done : ""}`;
+    return { id: `${d.rel}:${i + 1}`, file: d.rel, line: i + 1 };
+  });
+}
+
+/** Tukar quest (beserta subquest-nya) dengan quest sejajar di atas / bawahnya. */
+export async function moveQuest(id: string, input: { text: string; dir: "up" | "down" }) {
+  return withQuest(id, input.text, (d, i) => {
+    const L = d.lines;
+    let a: number, b: number; // a = awal blok atas, b = awal blok bawah (nempel langsung)
+    if (input.dir === "up") {
+      a = prevSibling(L, i);
+      b = i;
+      if (a < 0 || blockEnd(L, a) !== b) throw new WriteError(409, "Udah paling atas");
+    } else {
+      a = i;
+      b = blockEnd(L, i);
+      if (!isQuestLine(L[b]) || indentOf(L[b]) !== indentOf(L[i])) throw new WriteError(409, "Udah paling bawah");
+    }
+    const end = blockEnd(L, b);
+    const upper = L.slice(a, b), lower = L.slice(b, end);
+    L.splice(a, end - a, ...lower, ...upper);
+    const at = input.dir === "up" ? a : a + lower.length;
+    return { id: `${d.rel}:${at + 1}`, file: d.rel, line: at + 1 };
+  });
+}
+
+/** Hapus quest beserta subquest-nya. Baris di jurnal "Quest selesai" tidak disentuh. */
+export async function deleteQuest(id: string, input: { text: string }) {
+  return withQuest(id, input.text, (d, i) => {
+    const removed = d.lines.splice(i, blockEnd(d.lines, i) - i);
+    return { file: d.rel, line: i + 1, removed: removed.length };
+  });
+}
+
+/* ===== proyek & goal ===== */
+
+const EDITABLE_STATUS: ProjectStatus[] = ["idea", "active", "paused", "done"];
+
+function findProject(v: VaultIndex, slug: string) {
+  const p = v.projects.find((x) => x.slug === slug);
+  if (!p) throw new WriteError(404, "Proyek tidak ketemu");
+  return p;
+}
+
+export async function setProjectStatus(slug: string, status: string) {
+  if (!EDITABLE_STATUS.includes(status as ProjectStatus)) throw new WriteError(400, `Status tidak valid: ${status}`);
+  const p = findProject(await getVault(), slug);
+  if (p.isArchived) throw new WriteError(403, "Proyek diarsip (read-only)");
+  return withLocks([p.file], async () => {
+    const d = await readDoc(p.file);
+    if (!d.exists) throw new WriteError(404, "README proyek tidak ketemu");
+    setFmField(d, "status", status);
+    setFmField(d, "updated", todayIso());
+    await writeDoc(d);
+    return { file: p.file, status };
+  });
+}
+
+const slugify = (s: string) =>
+  s.normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
+
+const exists = (abs: string) => fs.stat(abs).then(() => true, () => false);
+
+export async function createProject(input: { title: string; type: string; status?: string; goal?: string | null; desc?: string }) {
+  const title = input.title.replace(/[\r\n]+/g, " ").trim();
+  if (!title) throw new WriteError(400, "Judul proyek kosong");
+  if (title.length > 120) throw new WriteError(400, "Judul kepanjangan");
+  if (input.type !== "personal" && input.type !== "work") throw new WriteError(400, "Type harus personal / work");
+  const status = input.status || "active";
+  if (!EDITABLE_STATUS.includes(status as ProjectStatus)) throw new WriteError(400, `Status tidak valid: ${status}`);
+  const v = await getVault();
+  if (input.goal && !v.goals.some((g) => g.slug === input.goal)) throw new WriteError(404, "Goal tidak ketemu");
+  const base = slugify(title) || "proyek";
+  const taken = async (s: string) =>
+    v.projects.some((p) => p.slug === s) || (await exists(safeResolve(`Projects/${s}`)!.abs)) || (await exists(safeResolve(`Archive/Projects/${s}`)!.abs));
+  let slug = base;
+  for (let n = 2; await taken(slug); n++) slug = `${base}-${n}`;
+  const rel = `Projects/${slug}/README.md`;
+  return withLocks([rel], async () => {
+    const d = await readDoc(rel);
+    if (d.exists) throw new WriteError(409, "Proyek udah ada");
+    const desc = (input.desc ?? "").replace(/\r\n/g, "\n").trim();
+    d.lines = [
+      "---",
+      `title: ${yamlScalar(title)}`,
+      `type: ${input.type}`,
+      `status: ${status}`,
+      ...(input.goal ? [`goal: ${input.goal}`] : []),
+      "tags: []",
+      `updated: ${todayIso()}`,
+      "---",
+      ...(desc ? [...desc.split("\n"), ""] : []),
+      "## Quest",
+      "",
+    ];
+    await writeDoc(d);
+    return { slug, file: rel };
+  });
+}
+
+/** Pindah folder proyek (Projects/ ⇄ Archive/Projects/). Rename dicoba ulang kalau lagi dipegang app lain. */
+async function moveDir(fromRel: string, toRel: string) {
+  const from = safeResolve(fromRel), to = safeResolve(toRel);
+  if (!from || !to) throw new WriteError(400, "Path tidak valid");
+  if (await exists(to.abs)) throw new WriteError(409, `Folder tujuan udah ada: ${toRel}/`);
+  await fs.mkdir(path.dirname(to.abs), { recursive: true });
+  await withWatcherPaused([fromRel, toRel], async () => {
+    for (let i = 0; ; i++) {
+      try {
+        await fs.rename(from.abs, to.abs);
+        return;
+      } catch (e) {
+        const code = (e as NodeJS.ErrnoException).code;
+        if (i < 6 && (code === "EPERM" || code === "EBUSY" || code === "EACCES")) {
+          await new Promise((r) => setTimeout(r, 100 * (i + 1)));
+          continue;
+        }
+        throw new WriteError(409, `Folder ga bisa dipindah (${code ?? "error"}). Mungkin lagi dibuka di Obsidian / Explorer.`);
+      }
+    }
+  });
+}
+
+/** Arsip: status archived + archived: tanggal, lalu folder pindah ke Archive/Projects/. */
+export async function archiveProject(slug: string) {
+  const p = findProject(await getVault(), slug);
+  if (p.isArchived) throw new WriteError(409, "Proyek udah diarsip");
+  const to = `Archive/Projects/${slug}`;
+  return withLocks([p.file, `${to}/README.md`], async () => {
+    const d = await readDoc(p.file);
+    if (!d.exists) throw new WriteError(404, "README proyek tidak ketemu");
+    const before = [...d.lines];
+    const today = todayIso();
+    setFmField(d, "status", "archived");
+    setFmField(d, "archived", today);
+    setFmField(d, "updated", today);
+    await writeDoc(d);
+    try {
+      await moveDir(p.dir, to);
+    } catch (e) {
+      d.lines = before; // folder gagal dipindah → frontmatter dibalikin
+      await writeDoc(d);
+      throw e;
+    }
+    return { slug, from: `${p.dir}/`, to: `${to}/`, prevStatus: p.status };
+  });
+}
+
+/** Pulihkan: folder balik ke Projects/, status jadi `status` (default paused), field archived dihapus. */
+export async function restoreProject(slug: string, status = "paused") {
+  if (!EDITABLE_STATUS.includes(status as ProjectStatus)) throw new WriteError(400, `Status tidak valid: ${status}`);
+  const p = findProject(await getVault(), slug);
+  if (!p.isArchived) throw new WriteError(409, "Proyek ga lagi diarsip");
+  const to = `Projects/${slug}`;
+  const file = `${to}/README.md`;
+  return withLocks([p.file, file], async () => {
+    await moveDir(p.dir, to);
+    const d = await readDoc(file);
+    if (d.exists) {
+      setFmField(d, "status", status);
+      removeFmField(d, "archived");
+      setFmField(d, "updated", todayIso());
+      await writeDoc(d);
+    }
+    return { slug, from: `${p.dir}/`, to: `${to}/`, status };
+  });
+}
+
+export async function setGoalStatus(slug: string, status: string) {
+  if (!["active", "done", "dropped"].includes(status)) throw new WriteError(400, `Status tidak valid: ${status}`);
+  const g = (await getVault()).goals.find((x) => x.slug === slug);
+  if (!g) throw new WriteError(404, "Goal tidak ketemu");
+  return withLocks([g.file], async () => {
+    const d = await readDoc(g.file);
+    if (!d.exists) throw new WriteError(404, "File goal tidak ketemu");
+    setFmField(d, "status", status);
+    await writeDoc(d);
+    return { file: g.file, status };
+  });
+}
+
+const HORIZONS = ["vision", "medium", "year", "quarter"];
+
+export async function createGoal(input: { title: string; horizon: string; target?: string | null; desc?: string }) {
+  const title = input.title.replace(/[\r\n]+/g, " ").trim();
+  if (!title) throw new WriteError(400, "Judul goal kosong");
+  if (title.length > 200) throw new WriteError(400, "Judul kepanjangan");
+  if (!HORIZONS.includes(input.horizon)) throw new WriteError(400, `Horizon tidak valid: ${input.horizon}`);
+  if (input.target && !isIsoDate(input.target)) throw new WriteError(400, "Target harus YYYY-MM-DD");
+  const base = slugify(title) || "goal";
+  let slug = base;
+  for (let n = 2; await exists(safeResolve(`Goals/${slug}.md`)!.abs); n++) slug = `${base}-${n}`;
+  const rel = `Goals/${slug}.md`;
+  return withLocks([rel], async () => {
+    const d = await readDoc(rel);
+    if (d.exists) throw new WriteError(409, "Goal udah ada");
+    const desc = (input.desc ?? "").replace(/\r\n/g, "\n").trim();
+    d.lines = [
+      "---",
+      `title: ${yamlScalar(title)}`,
+      `horizon: ${input.horizon}`,
+      "status: active",
+      ...(input.target ? [`target: ${input.target}`] : []),
+      "---",
+      ...(desc ? desc.split("\n") : []),
+      "",
+    ];
+    await writeDoc(d);
+    return { slug, file: rel };
   });
 }

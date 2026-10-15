@@ -334,11 +334,14 @@ updated: 2026-10-15
 | GET | `/api/journal?from&to`, `/api/journal/:date` | jurnal |
 | GET | `/api/habits?from&to` | definisi + status harian |
 | GET | `/api/notes/tree`, `/api/notes?path=`, `/api/search?q=` | catatan & pencarian |
-| POST | `/api/quests` | tambah quest ke file tertentu |
-| PATCH | `/api/quests/:id` | toggle / edit teks (body sertakan teks lama untuk validasi). Toggle sekalian update `## Quest selesai` di jurnal |
+| POST | `/api/quests` | tambah quest ke `Uncategorize.md`, README proyek (`project`), atau file goal (`goal`) |
+| PATCH | `/api/quests/:id` | toggle (`done`) / edit teks (`newText`) / ubah urutan (`move: up\|down`, ikut subquest). Body sertakan teks lama untuk validasi. Toggle sekalian update `## Quest selesai` di jurnal |
+| DELETE | `/api/quests/:id` | hapus quest beserta subquest-nya (body: teks lama) |
+| POST / PATCH | `/api/projects`, `/api/projects/:slug` | bikin proyek baru / ubah status |
+| POST / PATCH | `/api/goals`, `/api/goals/:slug` | bikin goal baru / ubah status |
 | PUT | `/api/journal/:date` | simpan jurnal (highlight, habits, summary) |
 | POST | `/api/projects/:slug/archive`, `/api/projects/:slug/restore` | arsip / pulihkan (update frontmatter + pindah folder) |
-| PATCH | `/api/frontmatter` | ubah field frontmatter file mana pun (status, stage, ...) |
+| PATCH | `/api/frontmatter` | ubah field frontmatter file mana pun (stage konten, ...). Status proyek & goal pakai endpoint masing-masing |
 | POST | `/api/content` | bikin konten baru |
 | GET | `/api/watchlist` | daftar judul |
 | POST / PATCH | `/api/watchlist`, `/api/watchlist/:slug` | tambah judul / update progress, status, rating |
