@@ -10,9 +10,9 @@ import { QuestList } from "@/components/quest-manage";
 import { toast } from "@/components/toast";
 import { Bar } from "@/components/ui";
 import { api } from "@/lib/client-api";
-import type { getProjects } from "@/lib/vault/views";
+import type { getProjectsPage } from "@/lib/vault/views";
 
-type P = Awaited<ReturnType<typeof getProjects>>[number];
+type P = Awaited<ReturnType<typeof getProjectsPage>>[number];
 type Filter = "all" | "personal" | "work" | "archived";
 type GoalOpt = { slug: string; title: string };
 
@@ -80,7 +80,7 @@ export function ProjectsView({
   const { run } = useWrite();
 
   const arch = projects.filter((p) => p.isArchived);
-  const list = projects.filter((p) => !p.isArchived && (f === "all" || p.type === f));
+  const list = projects.filter((p) => !p.isArchived && (f === "all" || (!p.isUncat && p.type === f)));
   const opened = projects.find((p) => p.slug === openSlug) ?? null;
 
   const setFilter = (x: Filter) => { setF(x); syncUrl(x, openSlug); };
@@ -190,10 +190,12 @@ export function ProjectsView({
               onClick={() => open(p.slug)}
               onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(p.slug); } }}
             >
-              <div className="proj-top">
-                <span className={"chip " + p.type}>{p.type}</span>
-                <span className={"status st-" + p.status}>{p.status}</span>
-              </div>
+              {p.isUncat ? null : (
+                <div className="proj-top">
+                  <span className={"chip " + p.type}>{p.type}</span>
+                  <span className={"status st-" + p.status}>{p.status}</span>
+                </div>
+              )}
               <h2>{p.title}</h2>
               {p.desc ? (
                 <p className="muted" style={{ margin: 0, fontSize: ".86rem" }}>
@@ -204,7 +206,7 @@ export function ProjectsView({
                 <span className="muted mono">
                   {p.stats.done}/{p.stats.total} quest
                 </span>
-                <span className="muted mono">update {fmtDate(p.updated)}</span>
+                {p.isUncat ? <span className="src">{p.file}</span> : <span className="muted mono">update {fmtDate(p.updated)}</span>}
               </div>
               <Bar value={p.stats.progress} good={p.type === "personal"} />
               {p.next ? (
@@ -357,55 +359,59 @@ function Drawer({ p, onClose, onArchive, onRestore }: { p: P; onClose: () => voi
             </button>
           </div>
         ) : null}
-        <dl className="fm">
-          <dt>type</dt>
-          <dd>
-            <span className={"chip " + p.type}>{p.type}</span>
-          </dd>
-          <dt>
-            <label htmlFor="pstatus">status</label>
-          </dt>
-          <dd>
-            {arc ? (
-              <span className="chip arc">archived</span>
-            ) : (
-              <select
-                id="pstatus"
-                className={"sel status-sel st-" + shownStatus}
-                value={shownStatus}
-                disabled={busy}
-                onChange={(e) => {
-                  const s = e.target.value;
-                  setStatus(s);
-                  void run(
-                    () => api.setProjectStatus(p.slug, s),
-                    (r) => toast("Status jadi " + r.status, r.file + " · status"),
-                  ).finally(() => setStatus(null));
-                }}
-              >
-                {STATUSES.map((s) => (
-                  <option key={s}>{s}</option>
-                ))}
-              </select>
-            )}
-          </dd>
-          <dt>goal</dt>
-          <dd>{p.goal ? <Link className="mono" href="/goals">{p.goal}</Link> : <span className="muted">—</span>}</dd>
-          <dt>tags</dt>
-          <dd>
-            {p.tags.length ? p.tags.map((t) => <span key={t} className="chip" style={{ marginRight: 4 }}>{t}</span>) : <span className="muted">—</span>}
-          </dd>
-          <dt>updated</dt>
-          <dd className="mono">{p.updated ?? "—"}</dd>
-        </dl>
+        {p.isUncat ? null : (
+          <dl className="fm">
+            <dt>type</dt>
+            <dd>
+              <span className={"chip " + p.type}>{p.type}</span>
+            </dd>
+            <dt>
+              <label htmlFor="pstatus">status</label>
+            </dt>
+            <dd>
+              {arc ? (
+                <span className="chip arc">archived</span>
+              ) : (
+                <select
+                  id="pstatus"
+                  className={"sel status-sel st-" + shownStatus}
+                  value={shownStatus}
+                  disabled={busy}
+                  onChange={(e) => {
+                    const s = e.target.value;
+                    setStatus(s);
+                    void run(
+                      () => api.setProjectStatus(p.slug, s),
+                      (r) => toast("Status jadi " + r.status, r.file + " · status"),
+                    ).finally(() => setStatus(null));
+                  }}
+                >
+                  {STATUSES.map((s) => (
+                    <option key={s}>{s}</option>
+                  ))}
+                </select>
+              )}
+            </dd>
+            <dt>goal</dt>
+            <dd>{p.goal ? <Link className="mono" href="/goals">{p.goal}</Link> : <span className="muted">—</span>}</dd>
+            <dt>tags</dt>
+            <dd>
+              {p.tags.length ? p.tags.map((t) => <span key={t} className="chip" style={{ marginRight: 4 }}>{t}</span>) : <span className="muted">—</span>}
+            </dd>
+            <dt>updated</dt>
+            <dd className="mono">{p.updated ?? "—"}</dd>
+          </dl>
+        )}
         {p.desc ? <p style={{ margin: 0 }}>{p.desc}</p> : null}
         <div className="tabs" role="tablist">
           <button type="button" role="tab" aria-selected={tab === "tasks"} onClick={() => setTab("tasks")}>
             Quest ({p.stats.open} terbuka)
           </button>
-          <button type="button" role="tab" aria-selected={tab === "notes"} onClick={() => setTab("notes")}>
-            Catatan ({p.files.length})
-          </button>
+          {p.isUncat ? null : (
+            <button type="button" role="tab" aria-selected={tab === "notes"} onClick={() => setTab("notes")}>
+              Catatan ({p.files.length})
+            </button>
+          )}
           {tab === "tasks" && !arc && p.quests.length ? (
             <button
               type="button"
@@ -437,7 +443,7 @@ function Drawer({ p, onClose, onArchive, onRestore }: { p: P; onClose: () => voi
                 Belum ada quest.
               </p>
             )}
-            {arc ? null : <AddQuestForm inputId="ptext" project={p.slug} />}
+            {arc ? null : <AddQuestForm inputId="ptext" project={p.isUncat ? undefined : p.slug} />}
           </>
         ) : (
           <ul className="file-list">
@@ -452,7 +458,7 @@ function Drawer({ p, onClose, onArchive, onRestore }: { p: P; onClose: () => voi
             ))}
           </ul>
         )}
-        {arc ? null : (
+        {arc || p.isUncat ? null : (
           <div className="drawer-foot">
             <button
               className="btn sm danger"

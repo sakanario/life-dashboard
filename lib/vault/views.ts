@@ -22,8 +22,12 @@ export function questLabel(v: VaultIndex, q: Quest): string | null {
   return null;
 }
 
-/** Uncategorize tanpa proyek: @work = work, sisanya personal. */
-export function questKind(q: Quest, projects: Map<string, Project>): "personal" | "work" {
+/**
+ * Jenis quest buat filter Hari ini. Uncategorize: @work / @personal ikut filter itu, tanpa tag cuma muncul di "Semua".
+ * Goal: @work = work, sisanya personal.
+ */
+export function questKind(q: Quest, projects: Map<string, Project>): "personal" | "work" | null {
+  if (q.source === "uncat") return q.tags.includes("work") ? "work" : q.tags.includes("personal") ? "personal" : null;
   const p = q.project ? projects.get(q.project) : null;
   return p ? p.type : q.tags.includes("work") ? "work" : "personal";
 }
@@ -170,17 +174,45 @@ export async function getGoals() {
 }
 
 /* ===== Proyek ===== */
+/** Slug kartu Uncategorize di halaman Proyek (underscore: bukan nama folder proyek). */
+export const UNCAT_SLUG = "_uncat";
+
+function withStats(p: Project, qs: Quest[]) {
+  qs = qs.sort(byFile);
+  const done = qs.filter((q) => q.done).length;
+  return {
+    ...p,
+    isUncat: p.slug === UNCAT_SLUG,
+    stats: { total: qs.length, done, open: qs.length - done, progress: qs.length ? done / qs.length : 0 },
+    next: qs.find((q) => !q.done)?.text ?? null,
+    quests: qs,
+  };
+}
+
 export async function getProjects() {
   const v = await getVault();
-  return v.projects.map((p) => {
-    const s = projectStats(v, p.slug);
-    return {
-      ...p,
-      stats: { total: s.total, done: s.done, open: s.open, progress: s.progress },
-      next: s.next?.text ?? null,
-      quests: v.quests.filter((q) => q.project === p.slug).sort(byFile),
-    };
-  });
+  return v.projects.map((p) => withStats(p, v.quests.filter((q) => q.project === p.slug)));
+}
+
+/** Halaman Proyek: Uncategorize.md tampil sebagai "proyek" paling depan, cuma di filter Semua (ga bisa diarsip / ganti status). */
+export async function getProjectsPage() {
+  const v = await getVault();
+  const uncat: Project = {
+    slug: UNCAT_SLUG,
+    title: "Uncategorize",
+    type: "personal",
+    status: "active",
+    goal: null,
+    tags: [],
+    updated: null,
+    archived: null,
+    isArchived: false,
+    desc: "Quest lepas yang belum masuk proyek mana pun.",
+    dir: "",
+    file: "Uncategorize.md",
+    files: [],
+  };
+  return [withStats(uncat, v.quests.filter((q) => q.source === "uncat")), ...(await getProjects())];
 }
 
 /* ===== Konten ===== */

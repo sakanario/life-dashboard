@@ -6,6 +6,7 @@ import { focusFirst } from "./habits";
 import { api, type ToggleResult } from "@/lib/client-api";
 import { toast } from "./toast";
 import { ArcChip } from "./ui";
+import { Picker } from "./picker";
 
 export type QuestRow = {
   id: string;
@@ -187,7 +188,7 @@ export function AddQuestForm({
       <input
         id={inputId}
         aria-label="Quest baru"
-        placeholder={options ? "Quest baru… (@tag boleh)" : "Quest baru…"}
+        placeholder="Quest baru…"
         autoComplete="off"
         value={text}
         readOnly={busy}
@@ -195,14 +196,12 @@ export function AddQuestForm({
         onChange={(e) => setText(e.target.value)}
       />
       {options ? (
-        <select aria-label="Simpan ke" value={dest} onChange={(e) => setDest(e.target.value)}>
-          <option value="">Uncategorize</option>
-          {options.map((p) => (
-            <option key={p.slug} value={p.slug}>
-              {p.title}
-            </option>
-          ))}
-        </select>
+        <Picker
+          label="Simpan ke"
+          value={dest}
+          onChange={setDest}
+          options={[{ value: "", label: "Uncategorize" }, ...options.map((p) => ({ value: p.slug, label: p.title }))]}
+        />
       ) : null}
       <button className="btn" type="submit" disabled={busy || !text.trim()}>
         {busy ? "Nambah…" : "Tambah"}

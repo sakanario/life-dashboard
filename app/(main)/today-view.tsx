@@ -5,6 +5,7 @@ import { useMemo, useState, useSyncExternalStore } from "react";
 import { focusFirst, HabitRow, useHabitSetter, type HabitState } from "@/components/habits";
 import { JournalForm } from "@/components/journal-form";
 import { AddQuestForm, QuestItem, useQuestToggle } from "@/components/quest";
+import { SlideSeg } from "@/components/slide-seg";
 import { Bar } from "@/components/ui";
 import { useWatchEp } from "@/components/watch-ep";
 import type { getToday } from "@/lib/vault/views";
@@ -33,6 +34,12 @@ const longDate = (s: string) => {
   return d + " " + BULAN_PANJANG[m - 1];
 };
 
+const FILTERS = [
+  ["all", "Semua"],
+  ["personal", "Personal"],
+  ["work", "Work"],
+] as const;
+
 const IC_COLLAPSE = <path d="m7 20 5-5 5 5M7 4l5 5 5-5" />;
 const IC_EXPAND = <path d="m7 15 5 5 5-5M7 9l5-5 5 5" />;
 
@@ -60,7 +67,7 @@ export function TodayView({ data, greeting, hour, journalOpen: jOpen0 }: { data:
     window.dispatchEvent(new Event(TG_KEY));
   };
 
-  const inF = (k: "personal" | "work") => filter === "all" || k === filter;
+  const inF = (k: "personal" | "work" | null) => filter === "all" || k === filter;
   // status optimistis: quest yang baru dicentang langsung pindah ke "Selesai hari ini"
   const live = [...data.open, ...data.doneToday].filter((q) => inF(q.kind));
   const open = live.filter((q) => !isDone(q));
@@ -181,22 +188,10 @@ export function TodayView({ data, greeting, hour, journalOpen: jOpen0 }: { data:
                   {anyOpen ? "Tutup semua" : "Buka semua"}
                 </button>
               ) : null}
-              <div className="seg" role="group" aria-label="Filter quest">
-                {(
-                  [
-                    ["all", "Semua"],
-                    ["personal", "Personal"],
-                    ["work", "Work"],
-                  ] as const
-                ).map(([k, l]) => (
-                  <button key={k} type="button" aria-pressed={filter === k} onClick={() => setFilter(k)}>
-                    {l}
-                  </button>
-                ))}
-              </div>
+              <SlideSeg label="Filter quest" value={filter} options={FILTERS} onChange={setFilter} />
             </div>
             {groups.length ? (
-              <div className="tgroups">
+              <div className="tgroups tswap" key={filter}>
                 {groups.map((g) => (
                   <details
                     key={g.key}
@@ -223,7 +218,7 @@ export function TodayView({ data, greeting, hour, journalOpen: jOpen0 }: { data:
                 ))}
               </div>
             ) : (
-              <p className="muted task-empty">Ga ada quest terbuka{filter === "all" ? "" : " di filter ini"}. Mantap.</p>
+              <p className="muted task-empty tswap" key={filter}>Ga ada quest terbuka{filter === "all" ? "" : " di filter ini"}. Mantap.</p>
             )}
             <AddQuestForm
               inputId="ttext"
