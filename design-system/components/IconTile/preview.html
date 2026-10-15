@@ -1,0 +1,20 @@
+<!-- @dsCard group="Actions" height=136 subtitle="App grid, play, swatch pair" -->
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Icon tile</title>
+<link rel="stylesheet" href="../../tokens.css">
+<link rel="stylesheet" href="../bundle.css">
+<script>function scTheme() { if (location.hash === "#dark" || location.hash === "#light") document.documentElement.setAttribute("data-theme", location.hash.slice(1)); } scTheme(); addEventListener("hashchange", scTheme);</script>
+
+<style>html,body{margin:0;height:100%}</style></head>
+<body>
+<div class="sc-stage">
+  <button class="sc-tile sc-tile--orange" type="button" aria-label="All apps">
+    <svg viewBox="0 0 24 24"><rect x="1" y="1" width="9.5" height="9.5" rx="3"/><rect x="13.5" y="1" width="9.5" height="9.5" rx="3"/><rect x="1" y="13.5" width="9.5" height="9.5" rx="3"/><rect x="13.5" y="13.5" width="9.5" height="9.5" rx="3"/></svg>
+  </button>
+  <button class="sc-tile sc-tile--navy" type="button" aria-label="Play">
+    <svg viewBox="0 0 24 24"><path d="M6 3.5v17a1 1 0 0 0 1.5.9l14-8.5a1 1 0 0 0 0-1.8l-14-8.5A1 1 0 0 0 6 3.5z"/></svg>
+  </button>
+  <span class="sc-swatch sc-swatch--orange"></span>
+  <span class="sc-swatch sc-swatch--navy"></span>
+</div>
+</body></html>

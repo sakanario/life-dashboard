@@ -1,0 +1,23 @@
+<!-- @dsCard group="Navigation" height=96 width=960 -->
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Nav bar</title>
+<link rel="stylesheet" href="../../tokens.css">
+<link rel="stylesheet" href="../bundle.css">
+<script>function scTheme() { if (location.hash === "#dark" || location.hash === "#light") document.documentElement.setAttribute("data-theme", location.hash.slice(1)); } scTheme(); addEventListener("hashchange", scTheme);</script>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap">
+<style>html,body{margin:0;height:100%}</style></head>
+<body>
+<div class="sc-stage">
+  <nav class="sc-nav" aria-label="Main">
+    <span class="sc-nav__menu" aria-hidden="true"><i></i><i></i><i></i></span>
+    <a href="#" aria-current="page">Home</a>
+    <a href="#">About</a>
+    <a href="#">Settings</a>
+    <div class="sc-nav__end">
+      <button class="sc-btn sc-btn--surface" type="button">Logout</button>
+      <span class="sc-nav__brand">Koguma</span>
+    </div>
+  </nav>
+</div>
+</body></html>

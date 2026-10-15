@@ -1,0 +1,1116 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Life Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: app shell — sidebar nav kiri + area kerja; di HP jadi header + nav geser horizontal.
+   Skin: Super Cub design system — kartu kaca di atas langit teal yang di-blur, oranye buat aksi & data, navy buat media. */
+:root{
+  --bg:#8ec5c9; --surface:#ffffff; --ink:#2b2350; --muted:#55536b;
+  --sunk:rgba(43,35,80,.07); --line:rgba(43,35,80,.12);
+  --glass:rgba(255,255,255,.32); --glass-strong:rgba(255,255,255,.82); --field:rgba(255,255,255,.34); --primary-bg:rgba(247,144,10,.62); --primary-hover:rgba(247,144,10,.8); --primary-ink:#241d47; --bar-fill:rgba(247,144,10,.62); --bar-good:rgba(63,122,71,.55); --card-glass:rgba(255,255,255,.48);
+  --accent:#f7900a; --accent-ink:#241d47; --accent-soft:rgba(247,144,10,.2); --accent-text:#a85600;
+  --navy:#2f2858; --on-navy:#ffffff; --teal-mist:#c2e1e3; --moss:#4d6e52;
+  --gold:#2f2858; --gold-soft:rgba(47,40,88,.12); --good:#3f7a47; --good-soft:rgba(63,122,71,.16); --warn:#a85600; --warn-soft:rgba(247,144,10,.18); --bad:#b3343f;
+  --h0:rgba(43,35,80,.08); --h1:rgba(247,144,10,.24); --h2:rgba(247,144,10,.44); --h3:rgba(247,144,10,.68); --h4:rgba(184,95,0,.82);
+  --wash:.28; --bg-filter:blur(24px) saturate(1.1);
+  --f-display:"Montserrat", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --f-body:"Montserrat", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+  --r:22px; --r-sm:14px;
+}
+:root[data-theme="dark"]{
+  --bg:#14303a; --surface:#26204a; --ink:#f3f1fa; --muted:#bdb9d3;
+  --sunk:rgba(255,255,255,.07); --line:rgba(255,255,255,.12);
+  --glass:rgba(38,32,74,.4); --glass-strong:rgba(38,32,74,.9); --field:rgba(255,255,255,.08); --primary-bg:rgba(255,157,31,.42); --primary-hover:rgba(255,157,31,.58); --primary-ink:#ffffff; --bar-fill:rgba(255,157,31,.55); --bar-good:rgba(127,200,138,.5); --card-glass:rgba(38,32,74,.5);
+  --accent:#ff9d1f; --accent-ink:#241d47; --accent-soft:rgba(255,157,31,.2); --accent-text:#ffb04d;
+  --navy:#4b4190; --on-navy:#ffffff; --teal-mist:#2b5660; --moss:#6f9a75;
+  --gold:#b9b0ff; --gold-soft:rgba(185,176,255,.16); --good:#7fc88a; --good-soft:rgba(127,200,138,.16); --warn:#ffb04d; --warn-soft:rgba(255,157,31,.18); --bad:#ff8a93;
+  --h0:rgba(255,255,255,.08); --h1:rgba(255,157,31,.2); --h2:rgba(255,157,31,.38); --h3:rgba(255,157,31,.6); --h4:rgba(255,176,77,.88);
+  --wash:.55; --bg-filter:blur(24px) saturate(.9) brightness(.45);
+  color-scheme:dark }
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14.5px;line-height:1.5}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+h1,h2,h3{font-family:var(--f-display);font-weight:700;line-height:1.15;margin:0;text-wrap:balance}
+h1{font-size:1.85rem;letter-spacing:-.01em}
+h2{font-size:1.15rem}
+h3{font-size:1rem;font-weight:500}
+.mono{font-family:var(--f-mono);font-size:.78rem}
+.muted{color:var(--muted)}
+.eyebrow{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.tnum{font-variant-numeric:tabular-nums}
+
+/* shell */
+.app{display:grid;grid-template-columns:232px minmax(0,1fr);height:100%}
+.side{border-right:1px solid var(--line);background:var(--surface);display:flex;flex-direction:column;gap:18px;padding:20px 14px;overflow-y:auto}
+.brand{display:flex;align-items:center;gap:10px;padding:0 8px}
+.brand-mark{width:30px;height:30px;border-radius:8px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-family:var(--f-display);font-weight:700}
+.brand b{font-family:var(--f-display);font-size:1.05rem}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav button{display:flex;align-items:center;gap:10px;border:0;background:none;padding:8px 10px;border-radius:8px;text-align:left;color:var(--muted);font-weight:500;white-space:nowrap}
+.nav button:hover{background:var(--sunk);color:var(--ink)}
+.nav button[aria-current="page"]{background:var(--accent-soft);color:var(--accent-text)}
+.nav svg{width:17px;height:17px;flex:none}
+.nav .count{margin-left:auto;font-size:.72rem;font-family:var(--f-mono)}
+.side-foot{margin-top:auto;display:flex;flex-direction:column;gap:8px;padding:0 8px}
+.sync{display:flex;align-items:center;gap:8px;font-size:.78rem;color:var(--muted)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--good);box-shadow:0 0 0 3px var(--good-soft)}
+.kbd{font-family:var(--f-mono);font-size:.72rem;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:1px 5px;background:var(--surface)}
+.search-btn{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:7px 10px;color:var(--muted);width:100%}
+.search-btn .kbd{margin-left:auto}
+
+.main{overflow-y:auto;min-width:0}
+.view{max-width:1180px;margin:0 auto;padding-block:28px 64px;padding-inline:28px;display:flex;flex-direction:column;gap:22px}
+.head{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px 20px;justify-content:space-between}
+.head p{margin:4px 0 0}
+.grid{display:grid;gap:16px}
+.g-today{grid-template-columns:minmax(0,1.35fr) minmax(0,1fr)}
+.col{display:flex;flex-direction:column;gap:16px;min-width:0}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;min-width:0}
+.panel-h{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.panel-h .src{margin-left:auto}
+.src{font-family:var(--f-mono);font-size:.7rem;color:var(--muted)}
+
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 12px;font-weight:500;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{border-color:var(--accent);color:var(--accent-text)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.08);color:var(--accent-ink)}
+.btn.sm{padding:3px 9px;font-size:.82rem}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:.74rem;padding:1px 8px;border-radius:99px;background:var(--sunk);color:var(--muted);font-weight:500;white-space:nowrap}
+.chip.work{background:var(--accent-soft);color:var(--accent-text)}
+.chip.personal{background:var(--good-soft);color:var(--good)}
+.chip.warn{background:var(--warn-soft);color:var(--warn)}
+
+/* alert */
+.alert{display:flex;gap:14px;align-items:center;flex-wrap:wrap;border:1px solid var(--warn);background:var(--warn-soft);border-radius:var(--r);padding:12px 16px}
+.alert b{color:var(--warn)}
+.alert .btn{margin-left:auto}
+
+/* tasks */
+.tasks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.task{display:grid;grid-template-columns:22px minmax(0,1fr);gap:10px;padding:8px 0;border-top:1px solid var(--line)}
+.task:first-child{border-top:0}
+.check{width:18px;height:18px;margin-top:2px;border:1.5px solid var(--muted);border-radius:5px;background:none;padding:0;display:grid;place-items:center}
+.check:hover{border-color:var(--accent)}
+.task.done .check{background:var(--accent);border-color:var(--accent)}
+.task.done .check::after{content:"";width:9px;height:5px;border-left:2px solid var(--accent-ink);border-bottom:2px solid var(--accent-ink);transform:rotate(-45deg) translate(1px,-1px)}
+.task.done .t-text{text-decoration:line-through;color:var(--muted)}
+.t-meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:3px}
+.add-row{display:flex;gap:8px;margin-top:10px}
+.add-row input,.add-row select{border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:6px 10px;min-width:0}
+.add-row input{flex:1}
+/* task groups (Hari ini) */
+.task-head{flex-wrap:wrap}
+.task-head .seg{margin-left:auto}
+.task-head .tg-all{margin-left:auto;color:var(--muted);white-space:nowrap}
+.task-head .tg-all:hover{color:var(--accent-text)}
+.task-head .tg-all + .seg{margin-left:0}
+.task-head .seg button{padding:3px 10px;font-size:.82rem}
+.tgroups{display:flex;flex-direction:column}
+.tgroup{border-top:1px solid var(--line);padding:4px 0}
+.tgroup:first-child{border-top:0}
+.tgroup > summary,.tdone > summary{display:flex;align-items:center;gap:8px;cursor:pointer;padding:5px 4px;border-radius:6px;font-weight:600;font-size:.88rem;list-style:none}
+.tgroup > summary::-webkit-details-marker,.tdone > summary::-webkit-details-marker{display:none}
+.tgroup > summary::before,.tdone > summary::before{content:"";flex:none;width:6px;height:6px;margin:0 3px;border-right:1.5px solid var(--muted);border-bottom:1.5px solid var(--muted);transform:rotate(-45deg)}
+.tgroup[open] > summary::before,.tdone[open] > summary::before{transform:rotate(45deg)}
+.tgroup > summary:hover,.tdone > summary:hover{background:var(--sunk)}
+.tgroup > summary .n{margin-left:auto;font-family:var(--f-mono);font-size:.74rem;color:var(--muted);font-weight:500}
+.tgroup .tasks,.tdone .tasks{padding-left:18px}
+.tdone{margin-top:8px;border-top:1px dashed var(--line);padding-top:6px}
+.tdone > summary{color:var(--muted);font-weight:500}
+.task-empty{margin:4px 0;font-size:.86rem}
+
+/* journal */
+.jform{display:flex;flex-direction:column;gap:12px}
+.jfield{display:flex;flex-direction:column;gap:5px}
+.jfield > label{font-size:.78rem;font-weight:600;color:var(--muted)}
+.jform input[type="text"],.jform textarea{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:8px 10px;min-width:0;width:100%;font:inherit}
+.jform textarea{resize:vertical;min-height:8.5em;line-height:1.5}
+.jfoot{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.jfoot .hint{font-size:.76rem;color:var(--muted);margin-right:auto}
+.jpanel:not(.open){padding-block:10px}
+.jpanel:not(.open) .panel-h{margin-bottom:0}
+.jhead h2{flex:1 1 auto;min-width:0;margin:0}
+.jtoggle{display:flex;align-items:center;gap:8px;width:100%;min-width:0;border:0;background:none;color:var(--ink);padding:4px 6px;margin:-4px -6px;border-radius:8px;font:inherit;text-align:left;cursor:pointer}
+.jtoggle:hover{background:var(--sunk)}
+.jt-title{flex:none;font-weight:700}
+.jchev{flex:none;width:16px;height:16px;color:var(--muted);transition:transform .15s}
+.jtoggle[aria-expanded="true"] .jchev{transform:rotate(90deg)}
+.jstat{display:flex;align-items:center;gap:6px;flex:1 1 auto;min-width:0;font-family:var(--f-body);font-size:.8rem;font-weight:400;color:var(--muted)}
+.jstat .jhl{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink)}
+.jstat .jmeta{flex:none;white-space:nowrap}
+.jhead .src{flex:none}
+
+/* habits */
+.habits{display:flex;flex-direction:column;gap:6px}
+.habit{display:flex;align-items:center;gap:8px;padding:2px 8px 2px 0;border-radius:8px;width:100%}
+.habit:hover{background:var(--sunk)}
+.habit .hb-tog{display:flex;align-items:center;gap:10px;flex:1;min-width:0;padding:4px 8px;border:0;background:none;text-align:left;color:inherit;border-radius:8px}
+.habit .hb{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--muted);flex:none;display:grid;place-items:center}
+.habit.done .hb{background:var(--good);border-color:var(--good)}
+.habit.done .hb::after{content:"";width:8px;height:4px;border-left:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(-45deg) translateY(-1px)}
+.habit.missed .hb{border-color:var(--line);background:var(--sunk)}
+.habit.missed .hb::after{content:"";width:8px;height:2px;border-radius:1px;background:var(--muted)}
+.habit.missed .hb-lbl{color:var(--muted)}
+.habit .streak{margin-left:auto;font-family:var(--f-mono);font-size:.74rem;color:var(--muted);white-space:nowrap}
+.habit .hb-side{display:flex;align-items:center;gap:6px;flex:none;font-size:.74rem;color:var(--muted);white-space:nowrap}
+.habit .hb-txt{border:0;background:none;padding:3px 6px;border-radius:6px;font-size:.74rem;color:var(--muted);text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:3px}
+.habit .hb-txt:hover{color:var(--ink);background:var(--surface)}
+.ring-row{display:flex;align-items:center;gap:14px;margin-bottom:8px}
+
+/* goals */
+.horizon{display:grid;grid-template-columns:150px minmax(0,1fr);gap:18px;padding:18px 0;border-top:1px solid var(--line)}
+.horizon:first-of-type{border-top:0}
+.horizon-label{display:flex;flex-direction:column;gap:2px}
+.vision{font-family:var(--f-display);font-size:1.35rem;line-height:1.35;font-weight:500;max-width:62ch;text-wrap:pretty}
+.goal-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.goal{display:flex;flex-direction:column;gap:10px}
+.goal h3{font-weight:600}
+.bar{height:6px;background:var(--sunk);border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:99px}
+.bar.good i{background:var(--good)}
+.goal .links{display:flex;flex-wrap:wrap;gap:6px}
+.stat-row{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.stat-row b{font-family:var(--f-display);font-size:1.3rem}
+
+/* projects */
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.seg{display:inline-flex;background:var(--sunk);border-radius:9px;padding:3px;gap:2px}
+.seg button{border:0;background:none;border-radius:7px;padding:4px 12px;color:var(--muted);font-weight:500}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.proj-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+.proj{display:flex;flex-direction:column;gap:10px;text-align:left;cursor:pointer;transition:border-color .15s}
+.proj:hover{border-color:var(--accent)}
+.proj-top{display:flex;gap:8px;align-items:center}
+.proj-top .status{margin-left:auto}
+.status{font-size:.74rem;font-weight:600;display:inline-flex;align-items:center;gap:5px}
+.status::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.st-active{color:var(--good)} .st-paused{color:var(--warn)} .st-idea{color:var(--muted)} .st-done{color:var(--accent-text)}
+.proj .next{font-size:.86rem;border-top:1px solid var(--line);padding-top:8px;display:flex;gap:6px}
+.proj .next span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* arsip */
+.arc-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.arc-list li{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
+.arc-list li:first-child{border-top:0}
+.arc-main{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1 1 260px}
+.arc-title{border:0;background:none;padding:0;text-align:left;font-weight:600;font-size:.95rem;color:var(--ink)}
+.arc-title:hover{color:var(--accent-text)}
+.arc-meta{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;font-size:.8rem}
+.arc-meta .src{overflow-wrap:anywhere}
+.chip.arc{background:var(--sunk);color:var(--muted);border:1px dashed var(--line)}
+.btn.danger{color:var(--bad);border-color:var(--bad)}
+.btn.danger:hover{color:var(--bad);border-color:var(--bad);background:var(--sunk)}
+.drawer-foot{border-top:1px solid var(--line);padding-top:14px;display:flex;flex-direction:column;gap:10px;align-items:flex-start}
+.confirm{border:1px solid var(--bad);border-radius:var(--r);background:var(--sunk);padding:12px 14px;display:flex;flex-direction:column;gap:10px;width:100%}
+.confirm p{margin:0;font-size:.88rem}
+.confirm .row{display:flex;gap:8px;flex-wrap:wrap}
+.arc-banner{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;border:1px dashed var(--line);background:var(--sunk);color:var(--muted);border-radius:var(--r);padding:10px 14px;font-size:.88rem}
+.arc-banner .btn{margin-left:auto}
+.check:disabled{cursor:not-allowed;opacity:.55}
+.check:disabled:hover{border-color:var(--muted)}
+.toast .btn{background:none;color:var(--bg);border-color:currentColor;padding:2px 10px;font-size:.82rem}
+.toast .btn:hover{color:var(--bg);border-color:currentColor;filter:brightness(1.2)}
+
+/* drawer */
+.scrim{position:fixed;inset:0;background:rgba(10,12,24,.42);display:flex;justify-content:flex-end;z-index:30}
+.drawer{width:min(620px,100%);height:100%;background:var(--surface);border-left:1px solid var(--line);overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:16px}
+.drawer-h{display:flex;gap:12px;align-items:flex-start}
+.drawer-h .x{margin-left:auto}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line)}
+.tabs button{border:0;background:none;padding:8px 12px;color:var(--muted);font-weight:500;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs button[aria-selected="true"]{color:var(--accent-text);border-color:var(--accent)}
+.fm{display:grid;grid-template-columns:110px minmax(0,1fr);gap:6px 12px;font-size:.86rem}
+.fm dt{color:var(--muted)}
+.fm dd{margin:0}
+.file-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.file-list li{display:flex;gap:10px;padding:8px 0;border-top:1px solid var(--line);align-items:center}
+.file-list li:first-child{border-top:0}
+
+/* kanban */
+.board-wrap{overflow-x:auto;margin-inline:-4px;padding:4px}
+.board{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(210px,1fr);gap:12px;min-width:max-content}
+.lane{background:var(--sunk);border-radius:var(--r);padding:10px;display:flex;flex-direction:column;gap:8px;min-height:260px;width:220px}
+.lane.over{outline:2px dashed var(--accent);outline-offset:-2px}
+.lane-h{display:flex;align-items:center;gap:6px;padding:2px 4px}
+.lane-h b{font-size:.85rem}
+.lane-h .n{margin-left:auto;font-family:var(--f-mono);font-size:.72rem;color:var(--muted)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px;cursor:grab;display:flex;flex-direction:column;gap:6px}
+.card:active{cursor:grabbing}
+.card.dragging{opacity:.4}
+.card b{font-weight:600;font-size:.9rem}
+.card p{margin:0;font-size:.8rem;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.lane .ghost-add{border:1px dashed var(--line);background:none;border-radius:8px;padding:6px;color:var(--muted);font-size:.82rem}
+
+/* journal page */
+.heat-wrap{overflow-x:auto}
+.heat{display:grid;grid-template-rows:repeat(7,13px);grid-auto-flow:column;grid-auto-columns:13px;gap:3px}
+.heat i{border-radius:3px;background:var(--h0)}
+.heat i[data-l="1"]{background:var(--h1)} .heat i[data-l="2"]{background:var(--h2)} .heat i[data-l="3"]{background:var(--h3)} .heat i[data-l="4"]{background:var(--h4)}
+.heat i.today{outline:2px solid var(--gold);outline-offset:1px}
+.heat-months{display:flex;font-size:.7rem;color:var(--muted);margin-bottom:4px;font-family:var(--f-mono)}
+.legend{display:flex;gap:4px;align-items:center;font-size:.72rem;color:var(--muted);margin-top:8px}
+.legend i{width:11px;height:11px;border-radius:3px;display:inline-block}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.kpi b{font-family:var(--f-display);font-size:1.6rem;display:block}
+.timeline{display:flex;flex-direction:column}
+.day{display:grid;grid-template-columns:120px minmax(0,1fr);gap:16px;padding:14px 0;border-top:1px solid var(--line)}
+.day:first-child{border-top:0}
+.day-date b{font-family:var(--f-display);font-size:1.05rem;display:block}
+.day-body{display:flex;flex-direction:column;gap:4px}
+.day-hl{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-weight:600}
+.day-sum{margin:0;font-size:.88rem;line-height:1.55;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.day-sum.open{display:block;-webkit-line-clamp:unset;overflow:visible}
+.more{align-self:flex-start;border:0;background:none;padding:0;color:var(--accent-text);font-size:.8rem;font-weight:500}
+.habit-strip{display:grid;grid-template-columns:150px repeat(14,minmax(14px,1fr));gap:4px;align-items:center;font-size:.82rem}
+.habit-strip i{height:14px;border-radius:3px;background:var(--h0)}
+.habit-strip i.done,.legend i.done{background:var(--good)}
+.habit-strip i.missed,.legend i.missed{background:repeating-linear-gradient(135deg,var(--sunk) 0 2px,var(--muted) 2px 3px);opacity:.55}
+
+/* watchlist */
+.watch-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px}
+.watch{padding:0;overflow:hidden;display:flex;flex-direction:column}
+.cover{aspect-ratio:16/9;max-width:100%;display:flex;align-items:flex-end;padding:12px;color:#fff;font-family:var(--f-display);font-weight:700;font-size:1.25rem;line-height:1.1;text-shadow:0 1px 8px rgba(0,0,0,.35);position:relative;overflow:hidden}
+.cover img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.cover.has-img::before{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(to top,rgba(0,0,0,.75),rgba(0,0,0,.25) 45%,rgba(0,0,0,0) 70%)}
+.cover-title{position:relative;z-index:2}
+.cover.drop{outline:3px dashed var(--accent);outline-offset:-3px}
+.cover.drop::after{content:"Lepas buat upload";position:absolute;inset:0;z-index:4;display:grid;place-items:center;background:rgba(0,0,0,.45);color:#fff;font-family:var(--f-body);font-weight:600;font-size:.9rem;text-shadow:none}
+.cover-acts{position:absolute;top:8px;right:8px;z-index:3;display:flex;gap:6px}
+.cover-btn{border:1px solid rgba(255,255,255,.28);background:rgba(0,0,0,.55);color:#fff;border-radius:7px;padding:4px 9px;font:500 .76rem/1.2 var(--f-body);text-shadow:none;display:inline-flex;align-items:center;gap:5px;cursor:pointer}
+.cover-btn:hover{background:rgba(0,0,0,.75);border-color:rgba(255,255,255,.6)}
+.cover-btn svg{width:13px;height:13px;flex:none}
+.watch-body{padding:12px 14px 14px;display:flex;flex-direction:column;gap:8px}
+.ep{display:flex;align-items:center;gap:8px}
+.ep b{font-family:var(--f-display);font-size:1.2rem}
+
+/* notes */
+.notes{display:grid;grid-template-columns:260px minmax(0,1fr);gap:16px;align-items:start}
+.tree{font-size:.86rem;max-height:70vh;overflow:auto}
+.tree details{margin-left:6px}
+.tree summary{cursor:pointer;padding:3px 4px;border-radius:5px;color:var(--ink);font-weight:500}
+.tree .f{display:block;width:100%;text-align:left;border:0;background:none;padding:3px 4px 3px 18px;border-radius:5px;color:var(--muted)}
+.tree .f:hover,.tree .f.on{background:var(--accent-soft);color:var(--accent-text)}
+.tree .locked{padding:3px 4px 3px 18px;color:var(--muted);opacity:.6;font-size:.8rem}
+.doc{max-width:72ch}
+.doc h1{font-size:1.5rem;margin-bottom:12px}
+.doc h2{margin:18px 0 8px}
+.doc table{border-collapse:collapse;width:100%;font-size:.86rem;margin:8px 0}
+.doc th,.doc td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left}
+.doc th{color:var(--muted);font-weight:600}
+.doc td:last-child{font-variant-numeric:tabular-nums}
+.doc blockquote{margin:8px 0;padding:6px 12px;border-left:3px solid var(--accent);background:var(--accent-soft);border-radius:0 6px 6px 0;font-size:.88rem}
+.doc .wl{color:var(--accent-text);text-decoration:underline;text-decoration-style:dotted;cursor:pointer}
+.table-wrap{overflow-x:auto}
+
+/* palette & toast */
+.pal-scrim{position:fixed;inset:0;background:rgba(10,12,24,.42);z-index:50;display:flex;justify-content:center;align-items:flex-start;padding:12vh 16px 16px}
+.pal{width:min(560px,100%);background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.25)}
+.pal input{width:100%;border:0;border-bottom:1px solid var(--line);padding:14px 16px;background:none;font-size:1rem;outline:none}
+.pal ul{list-style:none;margin:0;padding:6px;max-height:340px;overflow:auto}
+.pal li button{width:100%;border:0;background:none;display:flex;gap:10px;align-items:center;padding:8px 10px;border-radius:7px;text-align:left}
+.pal li button:hover,.pal li button.sel{background:var(--accent-soft)}
+.pal li .k{margin-left:auto}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--ink);color:var(--bg);border-radius:10px;padding:10px 16px;font-size:.86rem;z-index:60;display:flex;gap:10px;align-items:center;max-width:calc(100% - 32px)}
+.toast .mono{opacity:.75}
+.toast[hidden]{display:none}
+.sample{font-size:.72rem;color:var(--muted);border:1px dashed var(--line);border-radius:99px;padding:1px 8px}
+
+@media (max-width:1000px){ .g-today{grid-template-columns:minmax(0,1fr)} .notes{grid-template-columns:minmax(0,1fr)} .tree{max-height:240px} }
+@media (max-width:760px){
+  .app{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
+  .side{flex-direction:column;gap:10px;padding:12px 16px 8px;border-right:0;border-bottom:1px solid var(--line);overflow:visible}
+  .brand{padding:0}
+  .side-foot{display:none}
+  .nav{flex-direction:row;overflow-x:auto;gap:4px;margin-inline:-16px;padding-inline:16px;scrollbar-width:none}
+  .nav .count{display:none}
+  .view{padding-inline:16px;padding-block:18px 48px}
+  h1{font-size:1.5rem}
+  .horizon{grid-template-columns:minmax(0,1fr);gap:8px}
+  .day{grid-template-columns:minmax(0,1fr);gap:6px}
+  .habit-strip{grid-template-columns:96px repeat(14,minmax(8px,1fr));gap:3px;font-size:.74rem}
+  .drawer{padding:16px}
+  .jhead .src{display:none}
+  .jtoggle{flex-wrap:wrap;row-gap:2px}
+  .jstat{flex-basis:100%;padding-left:24px}
+}
+
+/* ===== Super Cub skin ===== */
+body{background:var(--bg);position:relative;isolation:isolate;font-weight:500}
+body::before,body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none}
+body::before{background:url("data:image/jpeg;base64,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") center/cover no-repeat;filter:var(--bg-filter);transform:scale(1.15)}
+body::after{background:var(--bg);opacity:var(--wash)}
+h1{font-weight:600;letter-spacing:-.01em}
+h2{font-weight:800}
+h3{font-weight:700}
+.eyebrow{letter-spacing:.22em;font-weight:700;color:var(--muted)}
+:focus-visible{outline-color:var(--navy);border-radius:10px}
+
+/* frosted glass: everything that floats */
+.side,.panel,.lane,.alert,.arc-banner,.confirm{background:var(--glass);-webkit-backdrop-filter:blur(18px) saturate(1.3);backdrop-filter:blur(18px) saturate(1.3);border:0}
+.side{margin:12px 0 12px 12px;border-radius:var(--r);height:calc(100% - 24px)}
+.panel{border-radius:var(--r);padding:18px 22px}
+.alert{background:var(--warn-soft)}
+.lane{border-radius:var(--r);padding:12px}
+.card{background:var(--card-glass);-webkit-backdrop-filter:blur(14px) saturate(1.3);backdrop-filter:blur(14px) saturate(1.3);border:0;border-radius:var(--r-sm)}
+.proj:hover,.panel.proj:hover{box-shadow:inset 0 0 0 2px var(--accent)}
+
+/* brand: the orange + navy square pair */
+.brand-mark{background:var(--accent);color:var(--accent-ink);border-radius:10px;position:relative;font-weight:800}
+.brand-mark::after{content:"";position:absolute;right:-7px;bottom:-5px;width:12px;height:12px;border-radius:4px;background:var(--navy)}
+.brand b{font-weight:800}
+
+/* nav: current page is an orange pill */
+.nav button{border-radius:99px;padding:8px 14px;color:var(--ink);opacity:.72;font-weight:600}
+.nav button:hover{background:var(--sunk);opacity:1}
+.nav button[aria-current="page"]{background:var(--primary-bg);color:var(--primary-ink);opacity:1;-webkit-backdrop-filter:blur(12px) saturate(1.4);backdrop-filter:blur(12px) saturate(1.4)}
+
+/* controls: pills */
+.btn{border:0;border-radius:99px;background:var(--glass-strong);padding:7px 16px;font-weight:600}
+.btn:hover{color:var(--ink);box-shadow:inset 0 0 0 2px var(--accent)}
+/* primary: translucent orange glass */
+.btn.primary{background:var(--primary-bg);color:var(--primary-ink);-webkit-backdrop-filter:blur(12px) saturate(1.4);backdrop-filter:blur(12px) saturate(1.4)}
+.btn.primary:hover{background:var(--primary-hover);color:var(--primary-ink);box-shadow:none}
+.btn.sm{padding:4px 12px}
+.btn.danger{background:var(--glass-strong);box-shadow:inset 0 0 0 1.5px var(--bad)}
+.search-btn{border:0;border-radius:99px;background:var(--glass-strong);padding:8px 14px;font-size:.84rem;white-space:nowrap}
+.kbd{border:0;background:var(--sunk);border-radius:6px;letter-spacing:0}
+.seg{background:var(--sunk);border-radius:99px;padding:3px}
+.seg button{border-radius:99px;font-weight:600}
+.seg button[aria-pressed="true"]{background:var(--navy);color:var(--on-navy);box-shadow:none}
+.chip{background:var(--sunk);color:var(--ink);font-weight:600}
+.chip.work{background:var(--accent-soft);color:var(--ink)}
+.chip.personal{background:var(--good-soft);color:var(--ink)}
+.chip.warn{background:var(--warn-soft);color:var(--ink)}
+/* text fields: translucent, the glass panel shows through */
+.add-row input,.add-row select,.jform input[type="text"],.jform textarea{background:var(--field);border:0;border-radius:var(--r-sm);box-shadow:inset 0 1px 2px rgba(43,35,80,.06)}
+.add-row input::placeholder,.jform input::placeholder,.jform textarea::placeholder{color:var(--muted)}
+.add-row select option{background:var(--surface);color:var(--ink)}
+.add-row input,.add-row select{border-radius:99px;padding:7px 14px}
+.add-row input:focus-visible,.add-row select:focus-visible,.jform input:focus-visible,.jform textarea:focus-visible{outline:2px solid var(--navy);outline-offset:1px}
+.check{border-radius:6px;border-color:var(--ink)}
+.task.done .check{background:var(--accent);border-color:var(--accent)}
+.task.done .check::after{border-color:var(--accent-ink)}
+.habit .hb{border-color:var(--ink)}
+.bar{height:8px}
+.bar i{background:var(--bar-fill)}
+.bar.good i{background:var(--bar-good)}
+.status{font-weight:700}
+.tabs button[aria-selected="true"]{border-color:var(--accent)}
+.sample{border:0;background:var(--sunk);color:var(--ink)}
+.more{font-weight:700}
+
+/* numbers in the display face, like the poster's 4:23 */
+.stat-row b,.kpi b,.ep b,.day-date b{font-weight:800}
+
+/* overlays: denser glass so text stays readable */
+.scrim,.pal-scrim{background:rgba(20,22,48,.35);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+.drawer{background:var(--glass-strong);-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px);border:0;border-radius:var(--r) 0 0 var(--r)}
+.pal{background:var(--glass-strong);-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px);border:0;border-radius:var(--r)}
+.pal input{border-radius:0;background:none;border-bottom:1px solid var(--line)}
+.toast{background:var(--navy);color:var(--on-navy);border-radius:99px;padding:10px 20px}
+.toast .btn{color:var(--on-navy);background:none;box-shadow:inset 0 0 0 1.5px currentColor}
+.toast .btn:hover{color:var(--on-navy)}
+
+/* Montserrat runs wider: let the journal meta shrink instead of running into the file path */
+.jstat .jmeta{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
+
+/* closeable side menu */
+.side-body{display:contents}
+.brand{gap:8px;padding-right:0}
+.brand > div:nth-child(2){min-width:0}
+.brand b{white-space:nowrap;font-size:.98rem}
+.side-toggle{margin-left:auto;flex:none;width:28px;height:28px;border:0;border-radius:10px;background:var(--sunk);color:var(--ink);display:grid;place-items:center}
+.side-toggle:hover{background:var(--accent-soft)}
+.side-open{position:fixed;top:16px;left:16px;z-index:20;display:inline-flex;align-items:center;gap:8px;border:0;border-radius:99px;padding:8px 14px 8px 10px;background:var(--glass-strong);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);color:var(--ink);font-weight:700;box-shadow:0 6px 18px rgba(43,35,80,.12)}
+.side-open:hover{box-shadow:inset 0 0 0 2px var(--accent),0 6px 18px rgba(43,35,80,.12)}
+/* open/close motion: the column shrinks while the glass panel slides out; the Menu pill fades in after it */
+:root{--side-ease:cubic-bezier(.22,.8,.24,1);--side-dur:.34s}
+.app{transition:grid-template-columns var(--side-dur) var(--side-ease)}
+.side{transition:transform var(--side-dur) var(--side-ease),opacity .24s ease,visibility 0s}
+.side-toggle svg{transition:transform var(--side-dur) var(--side-ease)}
+.view{transition:padding-top var(--side-dur) var(--side-ease)}
+.side-open{opacity:0;visibility:hidden;transform:translateX(-10px) scale(.96);transition:opacity .18s ease,transform .18s ease,visibility 0s linear .18s}
+@media (min-width:761px){
+  .side{width:220px}
+  .app.side-closed{grid-template-columns:0px minmax(0,1fr)}
+  .app.side-closed .side{transform:translateX(calc(-100% - 24px));opacity:0;visibility:hidden;transition:transform var(--side-dur) var(--side-ease),opacity .24s ease .06s,visibility 0s linear var(--side-dur)}
+  .app.side-closed .view{padding-top:72px}
+  .app.side-closed .side-open{opacity:1;visibility:visible;transform:none;transition:opacity .22s ease .2s,transform .26s var(--side-ease) .2s,visibility 0s}
+}
+.app.side-instant,.app.side-instant *{transition:none!important}
+
+/* watchlist covers keep their art; round them like thumbnails */
+.watch{padding:0}
+.cover-btn{border-radius:99px}
+.cover .cover-acts{opacity:0;transform:translateY(-4px);transition:opacity .18s ease,transform .18s ease}
+.watch:hover .cover-acts,.cover:focus-within .cover-acts,.cover.adjusting .cover-acts,.cover.drop .cover-acts{opacity:1;transform:none}
+@media (hover:none){ .cover .cover-acts{opacity:1;transform:none} }
+/* adjustable cover: drag to pan, slider to zoom */
+.cover img{transform-origin:var(--cx,50%) var(--cy,50%);object-position:var(--cx,50%) var(--cy,50%);transform:scale(var(--cz,1))}
+.cover.adjusting{cursor:grab;touch-action:none;outline:2px solid var(--accent);outline-offset:-2px}
+.cover.adjusting.grabbing{cursor:grabbing}
+.cover.adjusting .cover-title{display:none}
+.cover.adjusting.has-img::before{background:linear-gradient(to top,rgba(0,0,0,.55),rgba(0,0,0,0) 45%)}
+.cover-hint{position:absolute;top:8px;left:8px;z-index:3;border-radius:99px;padding:3px 10px;background:rgba(0,0,0,.5);color:#fff;font:600 .72rem/1.3 var(--f-body);text-shadow:none;pointer-events:none}
+.cover-adjust{position:absolute;left:8px;right:8px;bottom:8px;z-index:3;display:flex;align-items:center;gap:6px;padding:4px 4px 4px 12px;border-radius:99px;background:rgba(0,0,0,.5);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);color:#fff;font:600 .72rem/1 var(--f-body);text-shadow:none;cursor:default}
+.cover-adjust label{flex:none}
+.cover-adjust input[type="range"]{flex:1;min-width:0;accent-color:var(--accent)}
+.cover-adjust .cover-btn{border-color:rgba(255,255,255,.35)}
+.cover-acts .cover-btn.ok{background:var(--primary-bg);color:var(--primary-ink);border-color:transparent}
+
+@media (max-width:760px){
+  .side{margin:0;border-radius:0 0 var(--r) var(--r);height:auto}
+  /* on phones the menu is a header: closing folds away search + nav, the brand row stays */
+  /* phone: the search + nav rows fold up under the brand row */
+  .side-body{display:flex;flex-direction:column;gap:10px;margin-inline:-16px;padding-inline:16px;max-height:140px;overflow:hidden;transition:max-height var(--side-dur) var(--side-ease),opacity .22s ease,margin-top var(--side-dur) var(--side-ease),visibility 0s}
+  .app.side-closed .side-body{max-height:0;opacity:0;margin-top:-10px;visibility:hidden;transition:max-height var(--side-dur) var(--side-ease),opacity .16s ease,margin-top var(--side-dur) var(--side-ease),visibility 0s linear var(--side-dur)}
+  .app.side-closed .side-toggle svg{transform:rotate(-90deg)}
+  .side-open{display:none!important}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="app">
+  <aside class="side">
+    <div class="brand"><div class="brand-mark">S</div><div><b>Life Dashboard</b><div class="mono muted">vault: life-dashboard</div></div><button class="side-toggle" id="sideToggle" type="button" aria-controls="sideBody" aria-expanded="true" aria-label="Tutup menu" title="Tutup menu"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/></svg></button></div>
+    <div class="side-body" id="sideBody">
+    <button class="search-btn" id="openPal" type="button"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Cari / tambah…<span class="kbd">Ctrl K</span></button>
+    <nav class="nav" id="nav" aria-label="Menu"></nav>
+    <div class="side-foot">
+      <div class="sync"><span class="dot"></span>Vault tersinkron · <span class="tnum">214 file</span></div>
+      <div class="sync mono">watcher aktif · localhost:3000</div>
+      <button class="btn sm" id="themeBtn" type="button">Ganti tema</button>
+    </div>
+    </div>
+  </aside>
+  <button class="side-open" id="sideOpen" type="button" aria-controls="sideBody" aria-expanded="false"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/></svg>Menu</button>
+  <main class="main" id="main"></main>
+</div>
+<div id="layer"></div>
+
+<script></script>
+<script>
+(function(){
+"use strict";
+const TODAY = new Date(2026, 9, 15);
+const iso = d => d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+const TODAY_ISO = iso(TODAY);
+const BULAN = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
+const HARI = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmtDate = s => { const [y,m,d]=s.split("-").map(Number); return d+" "+BULAN[m-1]; };
+
+/* ===== Contoh data (diambil dari isi vault, bukan hasil parse beneran) ===== */
+const S = {
+  view: "today",
+  projFilter: "all",
+  taskFilter: "all",   /* all | personal | work */
+  taskClosed: {},      /* grup task yang di-collapse: { uncat:true, jip:true } */
+  doneOpen: false,     /* "Selesai hari ini" kebuka? */
+  journalOpen: false,  /* panel jurnal di Hari ini: default ketutup (nulisnya malem) */
+  jdraft: null,        /* ketikan jurnal yang belum disimpan, biar ga ilang pas re-render */
+  projects: [
+    {slug:"ai-maneh", title:"AI Maneh", type:"personal", status:"active", goal:"income-usd", tags:["flutter","ai"], updated:"2026-04-21", desc:"Aplikasi pencatat pengeluaran pakai input bahasa natural + insight otomatis.", files:["README.md","prompt.md"]},
+    {slug:"chat-overlay", title:"Chat Overlay", type:"personal", status:"active", goal:"income-usd", tags:["etsy","streamelements"], updated:"2026-07-13", desc:"Overlay live chat StreamElements, dijual di Etsy. Golden Hour Chat Widget udah live.", files:["README.md","Mempertimbangkan Develop di Platform Apa.md","archive/marketing.md","archive/Ninja Scroll.md"]},
+    {slug:"kopi-ksatria", title:"Kopi Ksatria", type:"personal", status:"active", goal:"konten", tags:["kopi","komik"], updated:"2026-10-02", desc:"Jualan kopi di kantor + komik strip buat promosi.", files:["README.md","Branding.md","HPP.md","Poster.md","Riset Branding - Tuku.md","komik/Komik.md"]},
+    {slug:"pemadanan-data-eri", title:"Pemadanan Data ERI", type:"work", status:"active", goal:"tw4", tags:["bapenda","korlantas"], updated:"2026-10-09", desc:"Bandingin data kendaraan Bapenda vs ERI Korlantas. Lagi fase desain.", files:["README.md","Context.md","Design.md","Discussion.md","Roadmap.md","Draft Berita Acara.md","Mockup.html"]},
+    {slug:"jip", title:"JIP", type:"work", status:"active", goal:null, tags:["php","docker"], updated:"2026-07-09", desc:"Jurnal Info Pendapatan. Masalah keamanan adminer + apache lama.", files:["README.md","Bug Fixing.md"]},
+    {slug:"sakti", title:"SAKTI", type:"work", status:"active", goal:"tw4", tags:["laravel"], updated:"2026-09-30", desc:"Lokasi layanan mobile udah jalan, tinggal dokumentasi.", files:["README.md","Riwayat Aktivitas User.md","archive/Development - Direct Print.md"]},
+    {slug:"aya-nu-gelo", title:"Aya Nu Gelo", type:"work", status:"active", goal:null, tags:["laravel","spatie"], updated:"2026-07-13", desc:"Revisian fitur utama, sinkron perubahan FE ke BE.", files:["README.md","Development - Main Feature.md"]},
+    {slug:"landing-page-bapenda", title:"Landing Page Bapenda", type:"work", status:"paused", goal:null, tags:["web"], updated:"2026-06-03", desc:"Request improve & refactor landing page.", files:["README.md","request.md","(prompt) Improve and refactor.md"]},
+    {slug:"biro-tanpa-jasa", title:"BIRO Tanpa Jasa", type:"work", status:"archived", archived:"2026-09-01", goal:null, tags:["deploy"], updated:"2026-05-22", desc:"Catatan deploy.", files:["README.md","deploy.md"]},
+    {slug:"pustaka-yudistira", title:"Pustaka Yudistira", type:"work", status:"idea", goal:null, tags:["metadata"], updated:"2026-05-12", desc:"Catatan metadata.", files:["README.md","Metadata.md"]}
+  ],
+  tasks: [
+    {id:1, text:"Tanyain apa yang berubah dari FE aya-nugelo, perlu penyesuaian di BE?", done:false, tags:["work"], project:"aya-nu-gelo", file:"Uncategorize.md", line:6},
+    {id:2, text:"Cari solusi pakai apache terupdate tapi app tetap jalan normal", done:false, tags:["work"], project:"jip", file:"Projects/jip/README.md", line:14},
+    {id:3, text:"Analisa kenapa user lama tiba-tiba ga bisa login", done:true, tags:["work"], doneAt:"2026-07-09", project:"jip", file:"Projects/jip/README.md", line:12},
+    {id:4, text:"Ganti password DB", done:true, tags:["work"], doneAt:"2026-10-15", project:"jip", file:"Projects/jip/README.md", line:13},
+    {id:5, text:"Buat DB transaksi + implement save logic", done:false, tags:["dev"], project:"ai-maneh", file:"Projects/ai-maneh/README.md", line:12},
+    {id:6, text:"View manajemen group & keyword", done:false, tags:["dev"], project:"ai-maneh", file:"Projects/ai-maneh/README.md", line:13},
+    {id:7, text:"Halaman list transaksi", done:true, tags:[], doneAt:"2026-04-20", project:"ai-maneh", file:"Projects/ai-maneh/README.md", line:9},
+    {id:8, text:"Halaman input transaksi via chat AI", done:true, tags:[], doneAt:"2026-04-21", project:"ai-maneh", file:"Projects/ai-maneh/README.md", line:10},
+    {id:9, text:"Belajar tentang streamer.bot", done:false, tags:["riset"], project:"chat-overlay", file:"Projects/chat-overlay/README.md", line:10},
+    {id:10, text:"Porting 2 overlay ke TikTok", done:false, tags:[], project:"chat-overlay", file:"Projects/chat-overlay/README.md", line:11},
+    {id:11, text:"Update listing Etsy jadi bundle", done:false, tags:["etsy"], project:"chat-overlay", file:"Projects/chat-overlay/README.md", line:12},
+    {id:12, text:"Mempertimbangkan develop di platform apa", done:true, tags:[], doneAt:"2026-07-12", project:"chat-overlay", file:"Projects/chat-overlay/README.md", line:9},
+    {id:13, text:"Format tanggal & aturan isi no rangka di template ERI", done:false, tags:["work"], project:"pemadanan-data-eri", file:"Projects/pemadanan-data-eri/Roadmap.md", line:41},
+    {id:14, text:"Kunci pencocokan: No Rangka + No Mesin", done:true, tags:["work"], doneAt:"2026-10-15", project:"pemadanan-data-eri", file:"Projects/pemadanan-data-eri/Roadmap.md", line:40},
+    {id:15, text:"Screenshot lokasi layanan mobile buat dokumentasi", done:false, tags:["work"], project:"sakti", file:"Projects/sakti/README.md", line:8},
+    {id:16, text:"Kumpulin mood board Ksatria Digital", done:false, tags:[], project:null, file:"Uncategorize.md", line:9},
+    {id:17, text:"Create dokumen lamaran kerja (nunggu kontrak baru)", done:false, tags:["work"], project:null, file:"Uncategorize.md", line:10},
+    {id:18, text:"Komik ep 10", done:false, tags:["konten"], project:"kopi-ksatria", file:"Projects/kopi-ksatria/README.md", line:11}
+  ],
+  journal: {
+    highlight:"Mulai bikin Life Dashboard", savedAt:"07:42",
+    summary:"Mulai rancang Life Dashboard sendiri buat gantiin Obsidian. Analisa vault, mutusin tetap pakai file .md (bukan SQLite), terus bikin requirement + mockup. Jurnal sekarang cukup ringkasan harian aja."
+  },
+  habits: [
+    /* state: null (belum) | "done" | "missed" (terlewat); base = streak s/d kemarin → frontmatter habits: { subuh: missed, deepwork: done } */
+    {id:"subuh", label:"Sholat subuh on time", state:"missed", base:0}, /* kesiangan */
+    {id:"quran", label:"Baca Al-Qur'an min 5 ayat", state:null, base:0},
+    {id:"olahraga", label:"Lari pagi / kalistenik", state:null, base:0},
+    {id:"tidur", label:"Tidur sebelum jam 10", state:null, base:0},
+    {id:"deepwork", label:"Deep work 1 jam project utama", state:"done", base:0}
+  ],
+  content: [
+    {slug:"es-gampang-cair", title:"Es gampang cair", stage:"idea", project:"kopi-ksatria", snip:"Masalah es di cup kopi yang cepet cair pas dianter."},
+    {slug:"dont-be-stripper", title:"Don't be stripper who don't strip", stage:"idea", project:null, snip:"Kalau udah mutusin jualan, ya jualan beneran."},
+    {slug:"buatin-website-diem-diem", title:"Buatin website diem-diem", stage:"idea", project:null, snip:"Bikinin website buat UMKM tanpa diminta, terus tunjukin."},
+    {slug:"aplikasi-kopi", title:"Aplikasi kopi", stage:"script", project:"kopi-ksatria", snip:"Senior gua nyaranin bikin aplikasi buat mesen kopi, bayar di aplikasi…"},
+    {slug:"jualan-kopi-di-kantor", title:"Jualan kopi di kantor", stage:"done", project:"kopi-ksatria", snip:"Storyboard + script lengkap, contoh pipeline yang udah jalan."},
+    {slug:"19-dollar", title:"19 Dollar", stage:"done", project:"chat-overlay", snip:"You have to pay nineteen bucks just to start selling on Etsy!?"},
+    {slug:"cerita-tools-live-chat", title:"Cerita tentang tools Live Chat", stage:"done", project:"chat-overlay", snip:"Awal mula bikin overlay live chat."},
+    {slug:"one-mission", title:"One Mission", stage:"done", project:null, snip:"Satu misi yang lagi dikejar."}
+  ],
+  watch: [
+    {slug:"re-zero-s4", title:"Re:Zero Season 4", type:"anime", status:"watching", progress:16, total:25, updated:"2026-10-01", c1:"#2b4fb8", c2:"#8db3ff"},
+    {slug:"one-piece", title:"One Piece", type:"anime", status:"watching", progress:1122, total:null, updated:"2026-07-20", c1:"#b3261e", c2:"#f2b13a"},
+    {slug:"garda-terkuat", title:"Garda Terkuat", type:"anime", status:"watching", progress:3, total:12, updated:"2026-07-13", c1:"#20303f", c2:"#6aa8a0"},
+    {slug:"frieren", title:"Frieren: Beyond Journey's End", type:"anime", status:"plan", progress:0, total:28, updated:"2026-07-08", c1:"#3d6b5c", c2:"#d9e7d1"}
+  ],
+  watchFilter: "all"
+};
+const STAGES = [["idea","Ide"],["script","Script"],["storyboard","Storyboard"],["shotlist","Shot list"],["rekaman","Rekaman"],["edit","Edit"],["upload","Upload"],["review","Review 48 jam"],["done","Done"]];
+const wordCount = s => (s.trim().match(/\S+/g)||[]).length;
+/* tanggal jurnal yang beneran ada di vault */
+const JOURNAL_DATES = {"2026-04-18":4,"2026-04-19":2,"2026-04-20":2,"2026-04-21":3,"2026-04-22":2,"2026-05-04":1,"2026-05-05":1,"2026-05-06":2,"2026-05-07":1,"2026-05-12":1,"2026-05-19":2,"2026-05-22":1,"2026-06-02":1,"2026-06-03":1,"2026-06-17":3,"2026-07-07":2,"2026-07-08":4,"2026-07-09":3,"2026-07-10":3,"2026-07-11":2,"2026-07-12":2,"2026-07-13":3,"2026-10-15":2};
+const PAST_DAYS = [
+  {date:"2026-07-13", hl:"Listing Golden Hour Chat Widget live di Etsy", summary:"Subuh-subuh berangkat ke Bandung naik travel jam 5. Pagi nonton Garda Terkuat sambil makan batagor mie, terus nyari tau kenapa harus pakai spatie buat permission. Yang paling seneng: lapor ke Rem kalau listing Golden Hour Chat Widget udah live di Etsy ($15.67)."},
+  {date:"2026-07-08", hl:"Paksa diri ngejar goals sendiri minimal 1 jam", summary:"Pagi ngerjain revisian project Aya Nu Gelo buat kerjaan. Siang makan di Tenth Avenue bareng Kang Faris & Kang Kijul. Malamnya minta quest ke Rem, dapet quest medium test efek miring chatbox, dan LULUS di YouTube & Twitch."},
+  {date:"2026-06-17", hl:"Daftar hasil kerja April–Juni beres", summary:"Baru tau laporan per 3 bulan itu namanya \"daftar hasil kerja\". Akhirnya beres juga daftar hasil kerja kontrak April–Juni 2026."}
+];
+
+/* ===== util ===== */
+const $ = s => document.querySelector(s);
+const main = $("#main"), layer = $("#layer");
+let toastT;
+function toast(msg, file, action){
+  clearTimeout(toastT);
+  let t = document.querySelector(".toast");
+  if(!t){ t = document.createElement("div"); t.className="toast"; t.setAttribute("role","status"); document.body.appendChild(t); }
+  t.innerHTML = '<span>'+esc(msg) + (file ? ' <span class="mono">→ '+esc(file)+'</span>' : "")+'</span>' + (action ? '<button class="btn sm" type="button" id="toastAct">'+esc(action.label)+'</button>' : "");
+  if(action) t.querySelector("#toastAct").addEventListener("click", ev=>{ ev.stopPropagation(); clearTimeout(toastT); t.hidden = true; action.fn(); });
+  t.hidden = false;
+  toastT = setTimeout(()=>{ t.hidden = true; }, action ? 5200 : 2600);
+}
+const proj = slug => S.projects.find(p=>p.slug===slug);
+const isArchived = p => !!p && p.status==="archived";
+/* task dari proyek yang diarsip ga ikut tampil di Hari ini / hitungan nav */
+const liveTask = t => !t.project || !isArchived(proj(t.project));
+const openLiveCount = () => S.tasks.filter(t=>!t.done && liveTask(t)).length;
+/* Uncategorize ga punya proyek: @work = work, sisanya personal */
+const taskKind = t => { const p = t.project && proj(t.project); return p ? p.type : (t.tags.includes("work") ? "work" : "personal"); };
+/* urutan file: per file, terus nomor baris */
+const byFile = (a,b) => a.file===b.file ? a.line-b.line : a.file.localeCompare(b.file);
+const archPath = slug => "Archive/Projects/"+slug+"/";
+const arcChip = p => isArchived(p) ? '<span class="chip arc" title="Proyek diarsip">arsip</span>' : "";
+function archiveProject(slug){
+  const p = proj(slug); if(!p || isArchived(p)) return;
+  const prev = {status:p.status, updated:p.updated};
+  p.status = "archived"; p.archived = TODAY_ISO; p.updated = TODAY_ISO;
+  layer.innerHTML = ""; delete layer.dataset.drawer;
+  render();
+  toast("Proyek diarsip", "Projects/"+slug+"/ → "+archPath(slug), {label:"Urungkan", fn:()=>{
+    p.status = prev.status; p.updated = prev.updated; delete p.archived;
+    render(); toast("Arsip dibatalin", archPath(slug)+" → Projects/"+slug+"/");
+  }});
+}
+function restoreProject(slug){
+  const p = proj(slug); if(!isArchived(p)) return;
+  p.status = "paused"; delete p.archived; p.updated = TODAY_ISO;
+  if(layer.dataset.drawer===slug && layer.querySelector(".drawer")) drawerProject(slug, layer.dataset.tab);
+  render();
+  toast("Proyek dipulihkan", archPath(slug)+" → Projects/"+slug+"/");
+}
+const projTasks = slug => S.tasks.filter(t=>t.project===slug);
+const progress = slug => { const ts = projTasks(slug); return ts.length ? ts.filter(t=>t.done).length/ts.length : 0; };
+function taskLi(t, opts={}){
+  const p = t.project && proj(t.project);
+  return '<li class="task'+(t.done?" done":"")+'"><button class="check"'+(opts.idp?' id="'+opts.idp+t.id+'"':"")+' data-act="toggle" data-id="'+t.id+'" aria-label="Tandai selesai: '+esc(t.text)+'" aria-pressed="'+t.done+'"'+(opts.readOnly?' disabled title="Proyek diarsip (read-only)"':"")+'></button>'+
+    '<div><div class="t-text">'+esc(t.text)+'</div><div class="t-meta">'+
+    (opts.noProject||!p ? "" : '<span class="chip '+p.type+'">'+esc(p.title)+'</span>'+arcChip(p))+
+    t.tags.map(g=>'<span class="chip">@'+esc(g)+'</span>').join("")+
+    '<span class="src">'+esc(t.file)+':'+t.line+'</span></div></div></li>';
+}
+const ICONS = {
+  today:'<path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/><circle cx="12" cy="12" r="4"/>',
+  goals:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+  projects:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 9v11"/>',
+  content:'<rect x="3" y="4" width="5" height="16" rx="1"/><rect x="10" y="4" width="5" height="10" rx="1"/><rect x="17" y="4" width="4" height="13" rx="1"/>',
+  journal:'<path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M9 9h6M9 13h4"/>',
+  watch:'<rect x="3" y="5" width="18" height="12" rx="2"/><path d="m10 9 5 2-5 2zM8 21h8"/>',
+  notes:'<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/>'
+};
+const NAV = [["today","Hari ini"],["goals","Goals"],["projects","Proyek"],["content","Konten"],["journal","Jurnal & Habit"],["watch","Watchlist"],["notes","Catatan"]];
+function renderNav(){
+  const counts = {today: openLiveCount(), projects: S.projects.filter(p=>p.status==="active" && !isArchived(p)).length, content: S.content.filter(c=>c.stage!=="done").length, watch: S.watch.filter(w=>w.status==="watching").length};
+  $("#nav").innerHTML = NAV.map(([k,l])=>'<button type="button" data-nav="'+k+'"'+(S.view===k?' aria-current="page"':"")+'><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+ICONS[k]+'</svg>'+l+(counts[k]?'<span class="count">'+counts[k]+'</span>':"")+'</button>').join("");
+}
+function go(v){ S.view=v; render(); main.scrollTop=0; try{ localStorage.setItem("ld-view", v); }catch(e){} }
+
+/* ===== habit: null (belum) | "done" | "missed" (terlewat) ===== */
+const habitCounts = () => ({done:S.habits.filter(h=>h.state==="done").length, missed:S.habits.filter(h=>h.state==="missed").length});
+const habitStreak = h => h.state==="done" ? h.base+1 : h.state==="missed" ? 0 : h.base;
+function habitRow(h){
+  const st = h.state, sk = habitStreak(h);
+  const side = st==="missed"
+    ? '<span class="hb-side">terlewat · besok lagi<button type="button" class="hb-txt" id="hb-undo-'+h.id+'" data-act="habit-undo" data-id="'+h.id+'" aria-label="Batalin terlewat: '+esc(h.label)+'">Batal</button></span>'
+    : st==="done"
+      ? '<span class="streak">'+(sk?sk+" hari":"—")+'</span>'
+      : '<span class="hb-side"><button type="button" class="hb-txt" id="hb-miss-'+h.id+'" data-act="habit-miss" data-id="'+h.id+'" aria-label="Tandai '+esc(h.label)+' terlewat hari ini">Terlewat</button></span>';
+  return '<div class="habit'+(st?" "+st:"")+'"><button type="button" class="hb-tog" id="hb-'+h.id+'" data-act="habit" data-id="'+h.id+'" aria-pressed="'+(st==="done")+'"'+(st==="missed"?' aria-description="terlewat hari ini"':"")+'><span class="hb" aria-hidden="true"></span><span class="hb-lbl">'+esc(h.label)+'</span></button>'+side+'</div>';
+}
+function setHabit(id, state){
+  const h = S.habits.find(x=>x.id===id); if(!h) return;
+  h.state = state;
+  const f = "2026-10-15.md · habits."+h.id;
+  if(state==="done") toast("Habit dicentang", f+": done");
+  else if(state==="missed") toast("Oke, besok lagi", f+": missed");
+  else toast("Dibatalin", f);
+  render();
+  const el = document.getElementById(state==="missed" ? "hb-undo-"+id : "hb-"+id); if(el) el.focus();
+}
+
+/* ===== task panel: tanpa deadline, semua task terbuka dalam satu daftar ===== */
+function taskPanel(){
+  const f = S.taskFilter, inF = t => f==="all" || taskKind(t)===f;
+  const live = S.tasks.filter(t=>liveTask(t) && inF(t));
+  const open = live.filter(t=>!t.done), doneTd = live.filter(t=>t.done && t.doneAt===TODAY_ISO).sort(byFile);
+  const groups = [{key:"uncat", title:"Uncategorize", chip:"", ts:open.filter(t=>!t.project)}]
+    .concat(S.projects.filter(p=>!isArchived(p)).map(p=>({key:p.slug, title:p.title, chip:'<span class="chip '+p.type+'">'+p.type+'</span>', ts:open.filter(t=>t.project===p.slug)})))
+    .filter(g=>g.ts.length);
+  const seg = [["all","Semua"],["personal","Personal"],["work","Work"]].map(([k,l])=>'<button type="button" id="tf-'+k+'" data-tf="'+k+'" aria-pressed="'+(f===k)+'">'+l+'</button>').join("");
+  const grp = g => '<details class="tgroup" data-tg="'+g.key+'"'+(S.taskClosed[g.key]?"":" open")+'><summary id="tgs-'+g.key+'" aria-label="'+esc(g.title)+', '+g.ts.length+' terbuka">'+esc(g.title)+g.chip+'<span class="n">'+g.ts.length+'</span></summary>'+
+    '<ul class="tasks">'+g.ts.slice().sort(byFile).map(t=>taskLi(t,{noProject:true, idp:"tk-"})).join("")+'</ul></details>';
+  const allBtn = groups.length>1 ? tgAllBtn(groups.some(g=>!S.taskClosed[g.key])) : "";
+  return '<section class="panel" aria-labelledby="tp-h"><div class="panel-h task-head"><h2 id="tp-h">Quest</h2><span class="muted tnum" style="font-size:.82rem">'+open.length+' terbuka</span>'+allBtn+'<div class="seg" role="group" aria-label="Filter quest">'+seg+'</div></div>'+
+    (groups.length ? '<div class="tgroups">'+groups.map(grp).join("")+'</div>'
+                   : '<p class="muted task-empty">Ga ada quest terbuka'+(f==="all"?"":" di filter ini")+'. Mantap.</p>')+
+    '<form class="add-row" id="tform"><input id="ttext" aria-label="Quest baru" placeholder="Quest baru… (@tag boleh)" autocomplete="off"><select id="tproj" aria-label="Simpan ke"><option value="">Uncategorize</option>'+S.projects.filter(p=>p.status!=="done" && !isArchived(p)).map(p=>'<option value="'+p.slug+'">'+esc(p.title)+'</option>').join("")+'</select><button class="btn" type="submit">Tambah</button></form>'+
+    '<details class="tdone" id="tdone"'+(S.doneOpen?" open":"")+'><summary id="tdone-sum">Selesai hari ini ('+doneTd.length+')</summary>'+
+      (doneTd.length ? '<ul class="tasks">'+doneTd.map(t=>taskLi(t,{idp:"tk-"})).join("")+'</ul>' : '<p class="muted task-empty">Belum ada yang dicentang hari ini.</p>')+
+    '</details></section>';
+}
+/* tombol tutup/buka semua grup quest (yang keliatan di filter aktif) */
+const IC_COLLAPSE = '<path d="m7 20 5-5 5 5M7 4l5 5 5-5"/>', IC_EXPAND = '<path d="m7 15 5 5 5-5M7 9l5-5 5 5"/>';
+function tgAllInner(anyOpen){
+  return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(anyOpen?IC_COLLAPSE:IC_EXPAND)+'</svg>'+(anyOpen?"Tutup semua":"Buka semua");
+}
+function tgAllBtn(anyOpen){
+  return '<button class="btn sm tg-all" type="button" id="tg-all" data-act="tg-all" aria-label="'+(anyOpen?"Tutup semua":"Buka semua")+'">'+tgAllInner(anyOpen)+'</button>';
+}
+function syncTgAll(){
+  const b=document.getElementById("tg-all"); if(!b) return;
+  const anyOpen=[...document.querySelectorAll(".tgroups .tgroup")].some(g=>g.open);
+  const lbl=anyOpen?"Tutup semua":"Buka semua";
+  if(b.getAttribute("aria-label")!==lbl){ b.setAttribute("aria-label",lbl); b.innerHTML=tgAllInner(anyOpen); }
+}
+/* habis centang/uncentang: fokus ke task berikutnya di grup yang sama, kalau ga ada ke ringkasan grup */
+function focusPlan(el, t){
+  if(el.closest(".drawer")) return ["dtk-"+t.id];
+  if(!t.done) return ["tk-"+t.id, "tgs-"+(t.project||"uncat"), "tdone-sum"];
+  const g = el.closest(".tgroup"); if(!g) return ["tk-"+t.id, "tdone-sum"];
+  const cs = [...g.querySelectorAll(".check")], i = cs.indexOf(el), ids = [];
+  if(cs[i+1]) ids.push(cs[i+1].id);
+  if(cs[i-1]) ids.push(cs[i-1].id);
+  ids.push("tgs-"+g.dataset.tg);
+  [g.nextElementSibling, g.previousElementSibling].forEach(s=>{ if(s && s.matches(".tgroup")) ids.push("tgs-"+s.dataset.tg); });
+  ids.push("tdone-sum");
+  return ids;
+}
+function focusFirst(ids){
+  for(const id of ids){ const x = id && document.getElementById(id); if(x && x.getClientRects().length){ x.focus(); return; } }
+}
+
+/* status ringkas di header jurnal (keliatan walau panel ketutup) */
+function jstat(){
+  const j = S.journal;
+  if(!j.summary) return '<span>Belum ditulis</span>'+(new Date().getHours()>=18 ? '<span class="chip work">waktunya nulis</span>' : "");
+  return (j.highlight ? '<span class="jhl">'+esc(j.highlight)+'</span><span class="jmeta" aria-hidden="true">·</span>' : "")+
+    '<span class="jmeta">'+wordCount(j.summary)+' kata · '+(j.savedAt?"disimpan "+j.savedAt:"belum disimpan")+'</span>';
+}
+function setJournalOpen(open){
+  S.journalOpen = open;
+  const b=$("#jtoggle"), body=$("#jbody"); if(!b||!body) return;
+  b.setAttribute("aria-expanded", String(open)); body.hidden = !open;
+  b.closest(".jpanel").classList.toggle("open", open);
+}
+
+/* ===== views ===== */
+function vToday(){
+  const d = TODAY;
+  const hc = habitCounts(), habitsTot = S.habits.length, habitsOpen = habitsTot-hc.done-hc.missed;
+  const watching = S.watch.filter(w=>w.status==="watching").slice(0,2);
+  const jd = S.jdraft || {hl:S.journal.highlight, sum:S.journal.summary};
+  /* ring: done (hijau) + terlewat (abu) = resolved; penuh kalau semua habit udah ditutup */
+  const ring = (done,missed,tot)=>{ const r=22,c=2*Math.PI*r,dl=c*done/tot,ml=c*missed/tot;
+    return '<svg width="56" height="56" viewBox="0 0 56 56" aria-hidden="true"><circle cx="28" cy="28" r="'+r+'" fill="none" stroke="var(--sunk)" stroke-width="6"/>'+
+      (missed?'<circle cx="28" cy="28" r="'+r+'" fill="none" stroke="var(--muted)" stroke-opacity=".4" stroke-width="6" stroke-dasharray="'+ml+' '+c+'" stroke-dashoffset="'+(-dl)+'" transform="rotate(-90 28 28)"/>':"")+
+      (done?'<circle cx="28" cy="28" r="'+r+'" fill="none" stroke="var(--good)" stroke-width="6" stroke-dasharray="'+dl+' '+c+'" transform="rotate(-90 28 28)"/>':"")+
+      '<text x="28" y="33" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)" font-family="var(--f-display)">'+done+'/'+tot+'</text></svg>'; };
+  return '<div class="head"><div><div class="eyebrow">'+HARI[d.getDay()]+', '+d.getDate()+' '+["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"][d.getMonth()]+' 2026</div><h1>Pagi, Satria.</h1><p class="muted">Highlight hari ini: <b style="color:var(--ink)">'+(S.journal.highlight?esc(S.journal.highlight):"belum diisi")+'</b></p></div><span class="sample">contoh data dari vault</span></div>'+
+  '<div class="alert" role="note"><div><b>Jurnal bolong 93 hari.</b> Terakhir nulis 13 Juli, terus lanjut lagi hari ini.</div><button class="btn sm" data-nav="journal" type="button">Lihat heatmap</button></div>'+
+  '<div class="grid g-today"><div class="col">'+
+    '<section class="panel jpanel'+(S.journalOpen?" open":"")+'"><div class="panel-h jhead"><h2><button type="button" class="jtoggle" id="jtoggle" data-act="jtoggle" aria-expanded="'+S.journalOpen+'" aria-controls="jbody">'+
+        '<svg class="jchev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>'+
+        '<span class="jt-title">Jurnal hari ini</span><span class="jstat" id="jstat">'+jstat()+'</span></button></h2><span class="src">Journal/2026/10/2026-10-15.md</span></div>'+
+      '<div id="jbody"'+(S.journalOpen?"":" hidden")+'>'+
+      '<form class="jform" id="jform">'+
+        '<div class="jfield"><label for="jhl">Highlight</label><input type="text" id="jhl" value="'+esc(jd.hl)+'" placeholder="Satu hal paling penting hari ini" autocomplete="off"></div>'+
+        '<div class="jfield"><label for="jsum">Ringkasan hari ini</label><textarea id="jsum" rows="6" placeholder="Hari ini ngapain aja? Bebas, 1–3 paragraf atau beberapa bullet.">'+esc(jd.sum)+'</textarea></div>'+
+        '<div class="jfoot"><span class="hint" id="jhint" aria-live="polite">'+wordCount(jd.sum)+' kata · '+(S.jdraft?"belum disimpan":S.journal.savedAt?"terakhir disimpan "+S.journal.savedAt:"belum disimpan")+'</span><button class="btn primary" id="jsave" type="submit">Simpan</button></div>'+
+      '</form>'+
+      '</div></section>'+
+    taskPanel()+
+  '</div><div class="col">'+
+    '<section class="panel"><div class="panel-h"><h2>Habit</h2><span class="src">frontmatter: habits</span></div><div class="ring-row">'+ring(hc.done,hc.missed,habitsTot)+'<div class="muted" style="font-size:.86rem" aria-live="polite">'+(habitsOpen===0?"Hari ini beres."+(hc.missed?" "+hc.missed+" terlewat, besok lagi.":""):habitsOpen+" lagi buat hari ini"+(hc.missed?" · "+hc.missed+" terlewat":""))+'</div></div><div class="habits">'+
+      S.habits.map(habitRow).join("")+'</div></section>'+
+    '<section class="panel"><div class="panel-h"><h2>Proyek aktif</h2><button class="btn sm" data-nav="projects" type="button" style="margin-left:auto">Semua</button></div>'+
+      S.projects.filter(p=>p.status==="active" && !isArchived(p)).slice(0,5).map(p=>{const pr=progress(p.slug);return '<div style="display:flex;flex-direction:column;gap:4px;padding:7px 0"><div class="stat-row"><button class="btn sm" style="border:0;padding:0;background:none;font-weight:600" data-proj="'+p.slug+'" type="button">'+esc(p.title)+'</button><span class="mono muted">'+Math.round(pr*100)+'%</span></div><div class="bar'+(p.type==="personal"?" good":"")+'"><i style="width:'+(pr*100)+'%"></i></div></div>';}).join("")+'</section>'+
+    '<section class="panel"><div class="panel-h"><h2>Lagi ditonton</h2><button class="btn sm" data-nav="watch" type="button" style="margin-left:auto">Watchlist</button></div>'+
+      watching.map(w=>'<div class="stat-row" style="padding:6px 0"><span>'+esc(w.title)+'</span><span style="display:flex;gap:8px;align-items:center"><span class="mono tnum">ep '+w.progress+(w.total?"/"+w.total:"")+'</span><button class="btn sm" data-act="ep" data-id="'+w.slug+'" type="button">+1</button></span></div>').join("")+'</section>'+
+  '</div></div>';
+}
+
+function vGoals(){
+  const tw4 = projTasks("sakti").concat(projTasks("pemadanan-data-eri"));
+  const goal = (title, horizon, body, prog, links, file, metric) =>
+    '<article class="panel goal"><div style="display:flex;gap:8px;align-items:center"><span class="chip">'+horizon+'</span><span class="src" style="margin-left:auto">'+file+'</span></div><h3>'+title+'</h3>'+
+    (metric?'<div class="stat-row"><b class="tnum">'+metric[0]+'</b><span class="muted" style="font-size:.82rem">'+metric[1]+'</span></div>':"")+
+    '<div class="bar good"><i style="width:'+Math.round(prog*100)+'%"></i></div><div class="muted" style="font-size:.82rem">'+body+'</div><div class="links">'+links.map(s=>'<span style="display:inline-flex;gap:4px;align-items:center"><button type="button" class="chip '+(isArchived(proj(s))?"":proj(s).type)+'" data-proj="'+s+'" style="border:0">'+esc(proj(s).title)+'</button>'+arcChip(proj(s))+'</span>').join("")+'</div></article>';
+  return '<div class="head"><div><div class="eyebrow">Goals/</div><h1>Arah hidup</h1></div><button class="btn" type="button" data-act="toast" data-msg="Goal baru dibuat" data-file="Goals/goal-baru.md">+ Goal</button></div>'+
+  '<section class="panel"><div class="horizon"><div class="horizon-label"><span class="eyebrow">Big vision</span><span class="muted" style="font-size:.82rem">jangka panjang</span></div><p class="vision" style="margin:0">Hidup dari digital bisnis yang scalable, bisa kerja dari mana aja, dan punya waktu buat hal-hal yang penting buat aku.</p></div>'+
+  '<div class="horizon"><div class="horizon-label"><span class="eyebrow">Medium goals</span><span class="muted" style="font-size:.82rem">1–2 tahun</span></div><div class="goal-cards">'+
+    goal("Satu sumber income USD yang jalan sendiri","medium","1 listing live di Etsy, belum ada penjualan.",progress("chat-overlay")*.6,["chat-overlay","ai-maneh"],"Goals/income-usd.md",["$0","/ $300 per bulan"])+
+    goal("Kekumpul 100jt pertama","medium","Metric belum diisi. Tambah field <span class='mono'>metric</span> di frontmatter.",0,["kopi-ksatria"],"Goals/100jt-pertama.md",null)+
+    goal("Dokumentasi perjalanan yang konsisten","medium","4 konten done, 1 script, 3 ide.",4/8,["kopi-ksatria","chat-overlay"],"Goals/konten.md",["4","konten terbit"])+
+  '</div></div>'+
+  '<div class="horizon"><div class="horizon-label"><span class="eyebrow">Kuartal ini</span><span class="muted" style="font-size:.82rem">Okt–Des 2026</span></div><div class="goal-cards">'+
+    goal("Target Triwulan 4 (kantor)","quarter","Lokasi layanan mobile selesai. Modul Pemadanan Data ERI masih fase desain.",tw4.filter(t=>t.done).length/tw4.length,["sakti","pemadanan-data-eri"],"Goals/target-triwulan-4.md",null)+
+  '</div></div></section>';
+}
+
+function vProjects(){
+  const f = S.projFilter;
+  const arch = S.projects.filter(isArchived);
+  const list = S.projects.filter(p=> !isArchived(p) && (f==="all" || p.type===f));
+  const seg = [["all","Semua"],["personal","Personal"],["work","Work"],["archived","Arsip ("+arch.length+")"]].map(([k,l])=>'<button type="button" data-pf="'+k+'" aria-pressed="'+(f===k)+'">'+l+'</button>').join("");
+  const head = '<div class="head"><div><div class="eyebrow">'+(f==="archived"?"Archive/Projects/":"Projects/")+'</div><h1>'+(f==="archived"?"Proyek diarsip":"Proyek")+'</h1></div><div class="toolbar"><div class="seg" role="group" aria-label="Filter proyek">'+seg+'</div><button class="btn" type="button" data-act="toast" data-msg="Proyek baru dibuat" data-file="Projects/proyek-baru/README.md">+ Proyek</button></div></div>';
+  if(f==="archived") return head + '<section class="panel" aria-label="Daftar proyek diarsip">'+(arch.length
+    ? '<ul class="arc-list">'+arch.map(p=>{ const ts=projTasks(p.slug);
+        return '<li><div class="arc-main"><button type="button" class="arc-title" data-proj="'+p.slug+'">'+esc(p.title)+'</button>'+
+          '<div class="arc-meta"><span class="chip '+p.type+'">'+p.type+'</span><span class="muted">diarsip '+(p.archived?fmtDate(p.archived):"—")+'</span><span class="muted mono">'+ts.filter(t=>t.done).length+'/'+ts.length+' quest</span><span class="src">'+archPath(p.slug)+'</span></div></div>'+
+          '<button class="btn sm" type="button" data-act="restore" data-slug="'+p.slug+'" id="restore-'+p.slug+'" aria-label="Pulihkan '+esc(p.title)+'">Pulihkan</button></li>'; }).join("")+'</ul>'
+    : '<p class="muted" style="margin:0">Belum ada proyek yang diarsip. Arsipin dari drawer proyek kalau udah ga dikerjain lagi, foldernya dipindah ke <span class="mono">Archive/Projects/</span>.</p>')+'</section>';
+  return head +
+  '<div class="proj-grid">'+list.map(p=>{
+    const ts=projTasks(p.slug), open=ts.filter(t=>!t.done), pr=progress(p.slug), nxt=open.sort(byFile)[0];
+    return '<article class="panel proj" tabindex="0" role="button" data-proj="'+p.slug+'"><div class="proj-top"><span class="chip '+p.type+'">'+p.type+'</span><span class="status st-'+p.status+'">'+p.status+'</span></div><h2>'+esc(p.title)+'</h2><p class="muted" style="margin:0;font-size:.86rem">'+esc(p.desc)+'</p>'+
+    '<div class="stat-row"><span class="muted mono">'+ts.filter(t=>t.done).length+'/'+ts.length+' quest</span><span class="muted mono">update '+fmtDate(p.updated)+'</span></div><div class="bar'+(p.type==="personal"?" good":"")+'"><i style="width:'+pr*100+'%"></i></div>'+
+    (nxt?'<div class="next"><span class="muted">Next:</span><span>'+esc(nxt.text)+'</span></div>':'<div class="next muted">Belum ada quest terbuka</div>')+'</article>';
+  }).join("")+'</div>';
+}
+
+function drawerProject(slug, tab){
+  const p = proj(slug); if(!p) return;
+  tab = tab || "tasks";
+  const ts = projTasks(slug), arc = isArchived(p), openN = ts.filter(t=>!t.done).length;
+  const tabs = [["tasks","Quest"],["notes","Catatan"]];
+  let body = "";
+  if(tab==="tasks") body = '<ul class="tasks">'+ts.slice().sort(byFile).map(t=>taskLi(t,{noProject:true, readOnly:arc, idp:"dtk-"})).join("")+'</ul>'+(ts.length?"":'<p class="muted" style="margin:0;font-size:.86rem">Belum ada quest.</p>')+
+    (arc ? "" : '<form class="add-row" id="ptform" data-slug="'+slug+'"><input id="pttext" aria-label="Quest baru" placeholder="Quest baru…" autocomplete="off"><button class="btn" type="submit">Tambah</button></form>');
+  if(tab==="notes") body = '<ul class="file-list">'+p.files.map(f=>'<li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">'+ICONS.notes+'</svg><span style="min-width:0;overflow:hidden;text-overflow:ellipsis">'+esc(f)+'</span><button class="btn sm" style="margin-left:auto" type="button" data-open-note="'+(f==="HPP.md"?"hpp":"")+'">Buka</button></li>').join("")+'</ul>';
+  const statusDd = arc
+    ? '<span class="chip arc">archived</span>'+(p.archived?' <span class="mono muted">archived: '+p.archived+'</span>':"")
+    : '<select id="pstatus" data-slug="'+slug+'" aria-label="Status">'+["idea","active","paused","done"].map(s=>'<option'+(s===p.status?" selected":"")+'>'+s+'</option>').join("")+'</select>';
+  const banner = arc ? '<div class="arc-banner" role="note"><span>Diarsip '+(p.archived?fmtDate(p.archived):"")+'. Read-only.</span><button class="btn sm" type="button" data-act="restore" data-slug="'+slug+'" id="drestore">Pulihkan</button></div>' : "";
+  const foot = arc ? "" : '<div class="drawer-foot"><button class="btn sm danger" type="button" data-act="archive-ask" id="darchive" aria-expanded="false" aria-controls="darcbox">Arsipkan</button>'+
+    '<div class="confirm" id="darcbox" role="group" aria-labelledby="darcmsg" hidden><p id="darcmsg">Arsipkan <b>'+esc(p.title)+'</b>? Folder dipindah ke <span class="mono">'+archPath(slug)+'</span>. '+openN+' quest terbuka ikut diarsip dan ga muncul di Hari ini lagi.</p>'+
+    '<div class="row"><button class="btn sm danger" type="button" data-act="archive-yes" data-slug="'+slug+'" id="darcyes">Ya, arsipkan</button><button class="btn sm" type="button" data-act="archive-no" id="darcno">Batal</button></div></div></div>';
+  layer.innerHTML = '<div class="scrim" data-close="1"><aside class="drawer" role="dialog" aria-modal="true" aria-label="'+esc(p.title)+(arc?" (diarsip)":"")+'"><div class="drawer-h"><div><div class="eyebrow">'+(arc?archPath(p.slug):"Projects/"+p.slug+"/")+'README.md</div><h1 style="font-size:1.5rem">'+esc(p.title)+'</h1></div><button class="btn sm x" data-close="1" type="button" aria-label="Tutup">✕</button></div>'+banner+
+    '<dl class="fm"><dt>type</dt><dd><span class="chip '+p.type+'">'+p.type+'</span></dd><dt>status</dt><dd>'+statusDd+'</dd><dt>goal</dt><dd>'+(p.goal?'<span class="mono">'+p.goal+'</span>':'<span class="muted">—</span>')+'</dd><dt>tags</dt><dd>'+p.tags.map(t=>'<span class="chip">'+esc(t)+'</span> ').join("")+'</dd><dt>updated</dt><dd class="mono">'+p.updated+'</dd></dl>'+
+    '<p style="margin:0">'+esc(p.desc)+'</p><div class="tabs" role="tablist">'+tabs.map(([k,l])=>'<button type="button" role="tab" aria-selected="'+(k===tab)+'" data-ptab="'+k+'" data-slug="'+slug+'">'+l+'</button>').join("")+'</div>'+body+foot+'</aside></div>';
+  layer.dataset.drawer = slug; layer.dataset.tab = tab;
+}
+
+function vContent(){
+  return '<div class="head"><div><div class="eyebrow">Content/</div><h1>Pipeline konten</h1><p class="muted">Seret kartu buat pindah tahap. Ngikutin <span class="wl" style="color:var(--accent-text)">[[Pipeline Short Video]]</span>.</p></div><button class="btn primary" type="button" data-act="idea">+ Ide cepat</button></div>'+
+  '<div class="board-wrap"><div class="board">'+STAGES.map(([k,l])=>{const cs=S.content.filter(c=>c.stage===k);return '<section class="lane" data-lane="'+k+'" aria-label="'+l+'"><div class="lane-h"><b>'+l+'</b><span class="n">'+cs.length+'</span></div>'+
+    cs.map(c=>'<article class="card" draggable="true" data-card="'+c.slug+'"><b>'+esc(c.title)+'</b><p>'+esc(c.snip)+'</p>'+(c.project?'<div style="display:flex;gap:4px;flex-wrap:wrap"><span class="chip '+(isArchived(proj(c.project))?"":proj(c.project).type)+'">'+esc(proj(c.project).title)+'</span>'+arcChip(proj(c.project))+'</div>':"")+'<span class="src">Content/'+c.slug+'.md</span></article>').join("")+
+    (k==="idea"?'<button class="ghost-add" type="button" data-act="idea">+ ide</button>':"")+'</section>';}).join("")+'</div></div>';
+}
+
+function vJournal(){
+  const start = new Date(TODAY); start.setDate(start.getDate()-7*26+1);
+  while(start.getDay()!==1) start.setDate(start.getDate()-1);
+  let cells="", months="", lastM=-1, col=0, cur=new Date(start), total=0;
+  const weeks=[];
+  while(cur<=TODAY){ const dow=(cur.getDay()+6)%7; if(dow===0){ weeks.push(cur.getMonth()); }
+    const k=iso(cur), l=JOURNAL_DATES[k]||0; if(l) total++;
+    cells+='<i data-l="'+l+'" title="'+k+(l?" · jurnal ada":" · kosong")+'"'+(k===TODAY_ISO?' class="today"':"")+'></i>'; cur.setDate(cur.getDate()+1); }
+  weeks.forEach((m,i)=>{ months+='<span style="width:16px;flex:none">'+(m!==lastM?BULAN[m]:"")+'</span>'; lastM=m; });
+  const hcJ = habitCounts();
+  const strip = S.habits.map(h=>{ let s='<span>'+esc(h.label.split(" ").slice(0,3).join(" "))+'</span>'; for(let i=13;i>=0;i--){ const st = i===0 ? h.state : (i<4 ? ((h.id.length*7+i*3)%5<2 ? "done" : (h.id.length+i)%4===0 ? "missed" : null) : null); s+='<i class="'+(st||"")+'" title="'+(i===0?"hari ini":i+" hari lalu")+' · '+(st==="done"?"selesai":st==="missed"?"terlewat":"kosong")+'"></i>'; } return s; }).join("");
+  return '<div class="head"><div><div class="eyebrow">Journal/</div><h1>Jurnal & Habit</h1></div><span class="sample">heatmap = tanggal jurnal asli di vault</span></div>'+
+  '<div class="kpis"><div class="panel kpi"><span class="eyebrow">Hari dijurnal</span><b class="tnum">'+total+'</b><span class="muted" style="font-size:.82rem">26 minggu terakhir</span></div><div class="panel kpi"><span class="eyebrow">Streak sekarang</span><b class="tnum">1</b><span class="muted" style="font-size:.82rem">rekor: 7 hari (7–13 Jul)</span></div><div class="panel kpi"><span class="eyebrow">Bolong terpanjang</span><b class="tnum" style="color:var(--warn)">93</b><span class="muted" style="font-size:.82rem">14 Jul – 14 Okt</span></div><div class="panel kpi"><span class="eyebrow">Habit hari ini</span><b class="tnum">'+hcJ.done+'/'+S.habits.length+'</b><span class="muted" style="font-size:.82rem">'+(hcJ.missed?hcJ.missed+" terlewat · ":"")+'dari Habits.md</span></div></div>'+
+  '<section class="panel"><div class="panel-h"><h2>Heatmap jurnal</h2></div><div class="heat-wrap"><div class="heat-months">'+months+'</div><div class="heat">'+cells+'</div></div><div class="legend">kosong <i style="background:var(--h0)"></i><i style="background:var(--h1)"></i><i style="background:var(--h2)"></i><i style="background:var(--h3)"></i><i style="background:var(--h4)"></i> ringkasan panjang</div><p class="muted" style="margin:4px 0 0;font-size:.74rem">Warna = panjang ringkasan hari itu (pendek → panjang).</p></section>'+
+  '<section class="panel"><div class="panel-h"><h2>Habit 14 hari</h2><span class="sample">contoh</span></div><div style="overflow-x:auto"><div class="habit-strip">'+strip+'</div></div><div class="legend" style="flex-wrap:wrap"><i class="done"></i> selesai <i class="missed" style="margin-left:8px"></i> terlewat <i style="background:var(--h0);margin-left:8px"></i> kosong <span class="src" style="margin-left:auto">habits: { '+esc(S.habits.filter(h=>h.state).map(h=>h.id+": "+h.state).join(", "))+' }</span></div></section>'+
+  '<section class="panel"><div class="panel-h"><h2>Timeline</h2><div class="seg" style="margin-left:auto" role="group" aria-label="Filter tag"><button type="button" aria-pressed="true">Semua</button><button type="button" aria-pressed="false">@work</button><button type="button" aria-pressed="false">@konten</button></div></div><div class="timeline">'+
+    dayEntry(TODAY_ISO, "Kamis · hari ini", S.journal.highlight, S.journal.summary)+
+    '<div class="day"><div class="day-date"><b style="color:var(--warn)">93 hari</b><span class="muted" style="font-size:.8rem">tanpa jurnal</span></div><div class="day-body"><span class="muted" style="font-size:.86rem">14 Jul – 14 Okt. Selama itu ada 6 quest selesai di proyek.</span></div></div>'+
+    PAST_DAYS.map(d=>dayEntry(d.date, HARI[new Date(d.date).getDay()], d.hl, d.summary)).join("")+
+  '</div></section>';
+}
+function dayEntry(date, sub, hl, summary){
+  return '<div class="day"><div class="day-date"><b>'+fmtDate(date)+'</b><span class="muted" style="font-size:.8rem">'+sub+'</span></div><div class="day-body">'+
+    '<div class="day-hl">'+esc(hl||"(tanpa highlight)")+'</div>'+
+    '<p class="day-sum" id="dsum-'+date+'">'+esc(summary||"")+'</p>'+
+    '<button type="button" class="more" id="dmore-'+date+'" data-act="more" data-d="'+date+'" aria-expanded="false" aria-controls="dsum-'+date+'">Baca selengkapnya</button>'+
+  '</div></div>';
+}
+
+/* cover watchlist: app asli nyimpen ke Watchlist/_covers/<slug>.webp (re-encode, maks 800px) + frontmatter cover:. Di mockup cuma di memori. */
+const COVER_MAX = 5*1024*1024;
+const IC_UP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>';
+/* posisi cover: frontmatter cover_pos: "x y zoom" (persen, persen, kali). Default tengah, 1×. */
+const IC_MOVE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3"/></svg>';
+const coverPos = w => (S.coverEdit && S.coverEdit.slug===w.slug) ? S.coverEdit : (w.coverPos || {x:50, y:50, z:1});
+const posStyle = c => "--cx:"+c.x.toFixed(1)+"%;--cy:"+c.y.toFixed(1)+"%;--cz:"+c.z.toFixed(2);
+function coverHtml(w){
+  const t=esc(w.title), has=!!w.cover, ed=has && S.coverEdit && S.coverEdit.slug===w.slug, c=coverPos(w);
+  if(ed) return '<div class="cover has-img adjusting" id="cover-'+w.slug+'" data-cover="'+w.slug+'" data-adjust="'+w.slug+'" tabindex="0" role="group" aria-label="Atur posisi cover '+t+'. Geser gambar, atau pakai panah. Enter simpan, Esc batal." style="'+posStyle(c)+'">'+
+    '<img src="'+esc(w.cover)+'" alt="" draggable="false">'+
+    '<span class="cover-hint">Geser gambar</span>'+
+    '<div class="cover-acts">'+
+      '<button class="cover-btn" type="button" id="cover-adj-no-'+w.slug+'" data-act="cover-adj-no" data-id="'+w.slug+'">Batal</button>'+
+      '<button class="cover-btn ok" type="button" id="cover-adj-ok-'+w.slug+'" data-act="cover-adj-ok" data-id="'+w.slug+'">Simpan</button></div>'+
+    '<div class="cover-adjust"><label for="cover-zoom-'+w.slug+'">Zoom</label><input type="range" id="cover-zoom-'+w.slug+'" data-cover-zoom="'+w.slug+'" min="1" max="3" step="0.05" value="'+c.z+'">'+
+      '<button class="cover-btn" type="button" data-act="cover-adj-reset" data-id="'+w.slug+'">Reset</button></div>'+
+  '</div>';
+  return '<div class="cover'+(has?" has-img":"")+'" id="cover-'+w.slug+'" data-cover="'+w.slug+'"'+(has?' style="'+posStyle(c)+'"':' style="background:linear-gradient(135deg,'+w.c1+','+w.c2+')"')+'>'+
+    (has?'<img src="'+esc(w.cover)+'" alt="">':"")+
+    '<span class="cover-title">'+t+'</span>'+
+    '<div class="cover-acts">'+
+      (has
+        ? '<button class="cover-btn" type="button" id="cover-adj-'+w.slug+'" data-act="cover-adj" data-id="'+w.slug+'" aria-label="Atur posisi cover '+t+'">'+IC_MOVE+'Atur</button>'+
+          '<button class="cover-btn" type="button" id="cover-up-'+w.slug+'" data-act="cover-pick" data-id="'+w.slug+'" aria-label="Ganti cover '+t+'">'+IC_UP+'Ganti</button>'+
+          '<button class="cover-btn" type="button" id="cover-del-'+w.slug+'" data-act="cover-del" data-id="'+w.slug+'" aria-label="Hapus cover '+t+'">Hapus</button>'
+        : '<button class="cover-btn" type="button" id="cover-up-'+w.slug+'" data-act="cover-pick" data-id="'+w.slug+'" aria-label="Upload cover '+t+'">'+IC_UP+'Upload cover</button>')+
+    '</div>'+
+    '<input type="file" accept="image/*" hidden id="cover-in-'+w.slug+'" data-cover-in="'+w.slug+'" aria-label="Upload cover '+t+'">'+
+  '</div>';
+}
+function setCover(slug, file){
+  const w=S.watch.find(x=>x.slug===slug); if(!w||!file) return;
+  if(!/^image\//.test(file.type||"") || file.size>COVER_MAX){ toast("File harus gambar, maks 5 MB"); return; }
+  const r=new FileReader();
+  r.onload=()=>{ w.cover=r.result; delete w.coverPos; if(S.coverEdit&&S.coverEdit.slug===slug) S.coverEdit=null; w.updated=TODAY_ISO; toast("Cover disimpan","Watchlist/_covers/"+slug+".webp · cover"); render(); focusFirst(["cover-up-"+slug]); };
+  r.onerror=()=>toast("Gagal baca file");
+  r.readAsDataURL(file);
+}
+
+/* object-position + scale (origin di titik yang sama) → tepi kiri gambar = -x·(z·lebarGambar − lebarKotak). Jadi geser 1px = 100/overflow persen. */
+function coverOverflow(c){
+  const img=c.querySelector("img"), bw=c.clientWidth, bh=c.clientHeight, nw=img.naturalWidth||bw, nh=img.naturalHeight||bh;
+  const s=Math.max(bw/nw, bh/nh), z=S.coverEdit.z;
+  return {ox:nw*s*z-bw, oy:nh*s*z-bh};
+}
+function clampCover(){ const c=S.coverEdit; c.x=Math.min(100,Math.max(0,c.x)); c.y=Math.min(100,Math.max(0,c.y)); c.z=Math.min(3,Math.max(1,c.z)); }
+function applyCoverEdit(){ const el=document.getElementById("cover-"+S.coverEdit.slug); if(el) el.style.cssText=posStyle(S.coverEdit); }
+function saveCoverPos(){ const c=S.coverEdit; if(!c) return; const w=S.watch.find(x=>x.slug===c.slug); S.coverEdit=null;
+  if(w){ w.coverPos={x:c.x, y:c.y, z:c.z}; w.updated=TODAY_ISO; toast("Posisi cover disimpan","Watchlist/"+w.slug+".md · cover_pos: "+Math.round(c.x)+" "+Math.round(c.y)+" "+c.z.toFixed(2)); }
+  render(); if(w) focusFirst(["cover-adj-"+w.slug]); }
+function cancelCoverPos(){ const c=S.coverEdit; S.coverEdit=null; render(); if(c) focusFirst(["cover-adj-"+c.slug]); }
+
+function vWatch(){
+  const f=S.watchFilter, list=S.watch.filter(w=>f==="all"||w.status===f);
+  const seg=[["all","Semua"],["watching","Ditonton"],["plan","Rencana"],["done","Selesai"]].map(([k,l])=>'<button type="button" data-wf="'+k+'" aria-pressed="'+(f===k)+'">'+l+'</button>').join("");
+  return '<div class="head"><div><div class="eyebrow">Watchlist/</div><h1>Watchlist</h1></div><div class="toolbar"><div class="seg" role="group" aria-label="Filter status">'+seg+'</div><button class="btn" type="button" data-act="toast" data-msg="Judul baru ditambah" data-file="Watchlist/judul-baru.md">+ Judul</button></div></div>'+
+  '<div class="watch-grid">'+list.map(w=>{const pr=w.total?w.progress/w.total:0;return '<article class="panel watch">'+coverHtml(w)+'<div class="watch-body"><div style="display:flex;gap:6px;align-items:center"><span class="chip">'+w.type+'</span><span class="status '+(w.status==="watching"?"st-active":w.status==="plan"?"st-idea":"st-done")+'">'+({watching:"ditonton",plan:"rencana",done:"selesai",dropped:"drop"})[w.status]+'</span></div>'+
+    '<div class="ep"><span class="muted">Episode</span><b class="tnum">'+w.progress+'</b><span class="muted tnum">'+(w.total?"/ "+w.total:"")+'</span><button class="btn sm" style="margin-left:auto" type="button" data-act="ep" data-id="'+w.slug+'">+1 ep</button></div>'+
+    (w.total?'<div class="bar"><i style="width:'+pr*100+'%"></i></div>':"")+'<span class="src">Watchlist/'+w.slug+'.md · '+fmtDate(w.updated)+'</span></div></article>';}).join("")+'</div>';
+}
+
+function vNotes(){
+  const folder=(name,files,open)=>'<details'+(open?" open":"")+'><summary>'+name+'</summary>'+files.map(f=>!f.startsWith("<")?'<button class="f'+(f==="HPP.md"?" on":"")+'" type="button">'+esc(f)+'</button>':f).join("")+'</details>';
+  return '<div class="head"><div><div class="eyebrow">semua file .md</div><h1>Catatan</h1></div><input class="search-btn" style="max-width:320px;color:var(--ink)" placeholder="Cari di seluruh vault…" aria-label="Cari catatan"></div>'+
+  '<div class="notes"><nav class="panel tree" aria-label="File vault">'+
+    folder("Projects",[folder("kopi-ksatria",["README.md","Branding.md","HPP.md","Poster.md","Riset Branding - Tuku.md"],true),folder("ai-maneh",["README.md","prompt.md"]),folder("pemadanan-data-eri",["README.md","Context.md","Roadmap.md"])],true)+
+    folder("Knowledge",[folder("Code",["Flutter.md","Server.md"]),folder("Learning",["Nihongo.md"]),folder("Ideas",["UMKM Pain Point - Pencatatan Penjualan.md"]),"referensi website.md"])+
+    folder("Content",["Pipeline Short Video.md","19-dollar.md","aplikasi-kopi.md"])+
+    folder("Archive",["Dashboard Archive.md"])+
+    '<div class="locked">🔒 _private/ (disembunyikan)</div>'+
+  '</nav><article class="panel doc"><div class="panel-h" style="margin-bottom:4px"><span class="src">Projects/kopi-ksatria/HPP.md</span><button class="btn sm" style="margin-left:auto" type="button" data-act="toast" data-msg="Mode edit (mockup)">Edit</button></div>'+
+    '<h1>HPP Kopi Ksatria</h1><blockquote>Semua takaran pakai <b>gr</b> (ditimbang). Kopi Nescafe harus kelipatan 2 gr (1 sachet = 2 gr).</blockquote>'+
+    '<h2>Resep final (cup 12 oz)</h2><div class="table-wrap"><table><thead><tr><th>Bahan</th><th>Takaran</th><th>Biaya</th></tr></thead><tbody><tr><td>Susu</td><td>100 gr</td><td>Rp 1.942</td></tr><tr><td>Nescafe Ice Roast</td><td>4 gr (2 sachet)</td><td>Rp 3.000</td></tr><tr><td>Creamer</td><td>10 gr</td><td>Rp 1.060</td></tr><tr><td>Susu kental manis</td><td>20 gr</td><td>Rp 560</td></tr><tr><td><b>Modal per cup</b></td><td>+ cup Rp 442</td><td><b>Rp 7.004</b></td></tr></tbody></table></div>'+
+    '<div class="table-wrap"><table><thead><tr><th>Harga jual</th><th>Profit / cup</th><th>Profit %</th></tr></thead><tbody><tr><td>Rp 10.000</td><td>Rp 2.996</td><td>30%</td></tr><tr><td>Rp 12.000</td><td>Rp 4.996</td><td>42%</td></tr></tbody></table></div>'+
+    '<p class="muted" style="font-size:.86rem">Lihat juga <span class="wl">[[Branding]]</span> · <span class="wl">[[Riset Branding - Tuku]]</span></p></article></div>';
+}
+
+const VIEWS = {today:vToday, goals:vGoals, projects:vProjects, content:vContent, journal:vJournal, watch:vWatch, notes:vNotes};
+function render(){ renderNav(); main.innerHTML = '<div class="view">'+VIEWS[S.view]()+'</div>'; bindDnD(); }
+
+/* ===== events ===== */
+document.addEventListener("click", e=>{
+  const el = e.target.closest("button,[data-proj],[data-close]"); if(!el) return;
+  const d = el.dataset;
+  if(d.nav){ layer.innerHTML=""; go(d.nav); return; }
+  if(d.close && e.target===el){ layer.innerHTML=""; delete layer.dataset.drawer; return; }
+  if(d.proj){ drawerProject(d.proj); return; }
+  if(d.ptab){ drawerProject(d.slug,d.ptab); return; }
+  if(d.pf){ S.projFilter=d.pf; render(); return; }
+  if(d.wf){ S.watchFilter=d.wf; render(); return; }
+  if(d.openNote!==undefined){ layer.innerHTML=""; go("notes"); return; }
+  if(d.tf){ S.taskFilter=d.tf; render(); focusFirst(["tf-"+d.tf]); return; }
+  if(d.act==="toggle"){ const t=S.tasks.find(x=>x.id==d.id); if(!t) return;
+    t.done=!t.done; if(t.done) t.doneAt=TODAY_ISO; else delete t.doneAt;
+    const fx=focusPlan(el, t);
+    toast(t.done?"Quest selesai":"Quest dibuka lagi", t.file+":"+t.line+(t.done?"  [x] done:"+TODAY_ISO:"  [ ]")); refresh(); focusFirst(fx); return; }
+  if(d.act==="tg-all"){ const gs=[...document.querySelectorAll(".tgroups .tgroup")], close=gs.some(g=>g.open);
+    gs.forEach(g=>{ S.taskClosed[g.dataset.tg]=close; }); render(); focusFirst(["tg-all"]); return; }
+  if(d.act==="habit"){ const h=S.habits.find(x=>x.id===d.id); setHabit(d.id, h.state==="done"?null:"done"); return; }
+  if(d.act==="habit-miss"){ setHabit(d.id, "missed"); return; }
+  if(d.act==="habit-undo"){ setHabit(d.id, null); return; }
+  if(d.act==="ep"){ const w=S.watch.find(x=>x.slug===d.id); w.progress++; w.updated=TODAY_ISO; if(w.status==="plan") w.status="watching"; toast(w.title+" → ep "+w.progress,"Watchlist/"+w.slug+".md · progress"); render(); return; }
+  if(d.act==="cover-pick"){ const inp=document.getElementById("cover-in-"+d.id); if(inp){ inp.value=""; inp.click(); } return; }
+  if(d.act==="cover-adj"){ const w=S.watch.find(x=>x.slug===d.id); if(!w||!w.cover) return; S.coverEdit=Object.assign({slug:w.slug}, w.coverPos||{x:50,y:50,z:1}); render(); focusFirst(["cover-"+w.slug]); return; }
+  if(d.act==="cover-adj-ok"){ saveCoverPos(); return; }
+  if(d.act==="cover-adj-no"){ cancelCoverPos(); return; }
+  if(d.act==="cover-adj-reset"){ if(!S.coverEdit) return; Object.assign(S.coverEdit,{x:50,y:50,z:1}); applyCoverEdit(); const r=document.getElementById("cover-zoom-"+S.coverEdit.slug); if(r) r.value=1; return; }
+  if(d.act==="cover-del"){ const w=S.watch.find(x=>x.slug===d.id); if(!w) return; delete w.cover; delete w.coverPos; if(S.coverEdit&&S.coverEdit.slug===w.slug) S.coverEdit=null; w.updated=TODAY_ISO; toast("Cover dihapus","Watchlist/"+w.slug+".md · cover"); render(); focusFirst(["cover-up-"+w.slug]); return; }
+  if(d.act==="idea"){ const n=S.content.filter(c=>c.slug.startsWith("ide-baru")).length+1; S.content.unshift({slug:"ide-baru-"+n,title:"Ide baru "+n,stage:"idea",project:null,snip:"Tulis ide 1 kalimat. Kenapa orang mau nonton sampe habis?"}); toast("Ide dibuat","Content/ide-baru-"+n+".md"); render(); return; }
+  if(d.act==="archive-ask"){ const box=$("#darcbox"); if(!box) return; box.hidden=false; el.setAttribute("aria-expanded","true"); $("#darcyes").focus(); return; }
+  if(d.act==="archive-no"){ const box=$("#darcbox"); if(box) box.hidden=true; const b=$("#darchive"); if(b){ b.setAttribute("aria-expanded","false"); b.focus(); } return; }
+  if(d.act==="archive-yes"){ archiveProject(d.slug); return; }
+  if(d.act==="restore"){ restoreProject(d.slug); return; }
+  if(d.act==="toast"){ toast(d.msg, d.file); return; }
+  if(d.act==="jtoggle"){ setJournalOpen(!S.journalOpen); return; }
+  if(d.act==="more"){ const p=document.getElementById("dsum-"+d.d), open=!p.classList.contains("open"); p.classList.toggle("open",open); el.setAttribute("aria-expanded",String(open)); el.textContent=open?"Tutup":"Baca selengkapnya"; return; }
+});
+function refresh(){ if(layer.dataset.drawer && layer.querySelector(".drawer")) drawerProject(layer.dataset.drawer, layer.dataset.tab); render(); }
+document.addEventListener("change", e=>{
+  if(e.target.id==="pstatus"){ const p=proj(e.target.dataset.slug); p.status=e.target.value; p.updated=TODAY_ISO; toast("Status → "+p.status,"Projects/"+p.slug+"/README.md · status"); render(); }
+  if(e.target.dataset && e.target.dataset.coverIn){ const f=e.target.files&&e.target.files[0]; if(f) setCover(e.target.dataset.coverIn, f); }
+});
+/* inget grup mana yang di-collapse (toggle ga bubble → capture) */
+document.addEventListener("toggle", e=>{
+  const el=e.target; if(!el.dataset) return;
+  if(el.dataset.tg){ S.taskClosed[el.dataset.tg]=!el.open; syncTgAll(); }
+  if(el.id==="tdone") S.doneOpen=el.open;
+}, true);
+document.addEventListener("input", e=>{
+  if(e.target.dataset && e.target.dataset.coverZoom && S.coverEdit){ S.coverEdit.z=+e.target.value; clampCover(); applyCoverEdit(); return; }
+  if(e.target.id==="jsum"||e.target.id==="jhl"){ S.jdraft={hl:$("#jhl").value, sum:$("#jsum").value}; const h=$("#jhint"); if(h) h.textContent=wordCount(S.jdraft.sum)+" kata · belum disimpan"; }
+});
+document.addEventListener("submit", e=>{
+  e.preventDefault();
+  if(e.target.id==="jform"){ const now=new Date(); S.journal.highlight=$("#jhl").value.trim(); S.journal.summary=$("#jsum").value.trim(); S.journal.savedAt=String(now.getHours()).padStart(2,"0")+":"+String(now.getMinutes()).padStart(2,"0"); S.jdraft=null; toast("Jurnal disimpan","2026-10-15.md · ringkasan"); render(); $("#jsave").focus(); }
+  if(e.target.id==="tform"||e.target.id==="ptform"){
+    const inp = e.target.querySelector("input"), raw=inp.value.trim(); if(!raw) return;
+    const slug = e.target.id==="ptform" ? e.target.dataset.slug : $("#tproj").value || null;
+    const tags=(raw.match(/@[\w-]+/g)||[]).map(x=>x.slice(1));
+    const text=raw.replace(/@[\w-]+/g,"").replace(/\s+/g," ").trim() || raw;
+    const file = slug ? "Projects/"+slug+"/README.md" : "Uncategorize.md";
+    const line = Math.max(0,...S.tasks.filter(t=>t.file===file).map(t=>t.line))+1;
+    const inpId = inp.id;
+    if(slug) delete S.taskClosed[slug]; else delete S.taskClosed.uncat; /* grup tujuan dibuka biar task barunya keliatan */
+    S.tasks.push({id:Date.now(), text, done:false, tags, project:slug, file, line});
+    toast("Quest ditambah", file+":"+line); refresh(); focusFirst([inpId]);
+  }
+});
+document.addEventListener("keydown", e=>{
+  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==="k"){ e.preventDefault(); palette(); return; }
+  if(S.coverEdit && e.target.dataset && e.target.dataset.adjust){
+    const step=e.shiftKey?10:2, k=e.key;
+    if(k==="ArrowLeft"||k==="ArrowRight"||k==="ArrowUp"||k==="ArrowDown"){ e.preventDefault();
+      if(k==="ArrowLeft") S.coverEdit.x+=step; if(k==="ArrowRight") S.coverEdit.x-=step; if(k==="ArrowUp") S.coverEdit.y+=step; if(k==="ArrowDown") S.coverEdit.y-=step;
+      clampCover(); applyCoverEdit(); return; }
+    if(k==="Enter"){ e.preventDefault(); saveCoverPos(); return; }
+  }
+  if(e.key==="Escape" && S.coverEdit && !layer.innerHTML){ cancelCoverPos(); return; }
+  if(e.key==="Escape"){ if(layer.innerHTML){ if(layer.querySelector(".drawer")) delete layer.dataset.drawer; layer.innerHTML=""; } return; }
+  if(e.key==="Enter" && e.target.matches && e.target.matches(".proj")) drawerProject(e.target.dataset.proj);
+});
+$("#openPal").addEventListener("click", palette);
+/* menu samping bisa ditutup; diinget per browser */
+const appEl=$(".app"), sideToggle=$("#sideToggle"), sideOpen=$("#sideOpen");
+const narrow=()=>matchMedia("(max-width:760px)").matches;
+function setSide(open, focus){
+  appEl.classList.toggle("side-closed", !open);
+  sideToggle.setAttribute("aria-expanded", String(open));
+  sideToggle.setAttribute("aria-label", open?"Tutup menu":"Buka menu"); sideToggle.title = open?"Tutup menu":"Buka menu";
+  try{ localStorage.setItem("ld-side", open?"open":"closed"); }catch(e){}
+  if(focus) (open || narrow() ? sideToggle : sideOpen).focus();
+}
+sideToggle.addEventListener("click", ()=>setSide(appEl.classList.contains("side-closed"), true));
+sideOpen.addEventListener("click", ()=>setSide(true, true));
+/* restore without animating, then switch motion on */
+appEl.classList.add("side-instant");
+try{ if(localStorage.getItem("ld-side")==="closed") setSide(false); }catch(e){}
+void appEl.offsetWidth; /* apply the restored state, then allow motion */
+setTimeout(()=>appEl.classList.remove("side-instant"), 0);
+$("#themeBtn").addEventListener("click", ()=>{ const r=document.documentElement, dark = r.dataset.theme==="dark"; r.dataset.theme = dark?"light":"dark"; });
+
+function palette(){
+  const items = [].concat(
+    [["+ Catat jurnal",()=>{S.journalOpen=true;go("today");setTimeout(()=>{setJournalOpen(true);$("#jsum")&&$("#jsum").focus();},0);},"aksi"],["+ Quest ke Uncategorize",()=>{go("today");setTimeout(()=>$("#ttext")&&$("#ttext").focus(),0);},"aksi"],["+ Ide konten",()=>{go("content");},"aksi"]],
+    NAV.map(([k,l])=>[l,()=>go(k),"halaman"]),
+    S.projects.filter(p=>!isArchived(p)).map(p=>[p.title,()=>drawerProject(p.slug),"proyek"]),
+    S.projects.filter(isArchived).map(p=>[p.title,()=>drawerProject(p.slug),"arsip"]),
+    S.watch.map(w=>[w.title,()=>go("watch"),"watchlist"]));
+  layer.innerHTML='<div class="pal-scrim" data-close="1"><div class="pal" role="dialog" aria-modal="true" aria-label="Cari"><input id="palq" placeholder="Ketik nama proyek, halaman, atau aksi…" autocomplete="off"><ul id="pall"></ul></div></div>';
+  const q=$("#palq"), ul=$("#pall"); let sel=0, shown=[];
+  const draw=()=>{ const s=q.value.toLowerCase(); shown=items.filter(x=>x[0].toLowerCase().includes(s)).slice(0,9); sel=Math.min(sel,shown.length-1);
+    ul.innerHTML=shown.map((x,i)=>'<li><button type="button" data-pi="'+i+'" class="'+(i===sel?"sel":"")+'">'+esc(x[0])+'<span class="chip k">'+x[2]+'</span></button></li>').join("")||'<li class="muted" style="padding:10px">Ga ketemu</li>'; };
+  const run=i=>{ const x=shown[i]; if(!x) return; layer.innerHTML=""; x[1](); };
+  q.addEventListener("input",()=>{sel=0;draw();});
+  q.addEventListener("keydown",ev=>{ if(ev.key==="ArrowDown"){sel=Math.min(sel+1,shown.length-1);draw();ev.preventDefault();} if(ev.key==="ArrowUp"){sel=Math.max(sel-1,0);draw();ev.preventDefault();} if(ev.key==="Enter"){run(sel);} });
+  ul.addEventListener("click",ev=>{ const b=ev.target.closest("[data-pi]"); if(b){ ev.stopPropagation(); run(+b.dataset.pi); } });
+  draw(); q.focus();
+}
+
+function bindDnD(){
+  let dragSlug=null;
+  main.querySelectorAll(".card").forEach(c=>{
+    c.addEventListener("dragstart",ev=>{ dragSlug=c.dataset.card; c.classList.add("dragging"); ev.dataTransfer.effectAllowed="move"; try{ev.dataTransfer.setData("text/plain",dragSlug);}catch(_){} });
+    c.addEventListener("dragend",()=>c.classList.remove("dragging"));
+  });
+  main.querySelectorAll(".lane").forEach(l=>{
+    l.addEventListener("dragover",ev=>{ev.preventDefault();l.classList.add("over");});
+    l.addEventListener("dragleave",()=>l.classList.remove("over"));
+    l.addEventListener("drop",ev=>{ ev.preventDefault(); l.classList.remove("over"); const c=S.content.find(x=>x.slug===dragSlug); if(!c||c.stage===l.dataset.lane) return; c.stage=l.dataset.lane; toast("Pindah ke "+STAGES.find(s=>s[0]===c.stage)[1],"Content/"+c.slug+".md · stage: "+c.stage); render(); });
+  });
+  /* geser cover yang lagi diatur */
+  main.querySelectorAll(".cover[data-adjust]").forEach(c=>{
+    let start=null;
+    c.addEventListener("pointerdown",ev=>{ if(ev.target.closest(".cover-adjust,.cover-acts")||ev.button>0) return; ev.preventDefault(); c.focus({preventScroll:true});
+      start={px:ev.clientX, py:ev.clientY, x:S.coverEdit.x, y:S.coverEdit.y, ...coverOverflow(c)}; c.setPointerCapture(ev.pointerId); c.classList.add("grabbing"); });
+    c.addEventListener("pointermove",ev=>{ if(!start) return;
+      if(start.ox>0) S.coverEdit.x=start.x-(ev.clientX-start.px)/start.ox*100;
+      if(start.oy>0) S.coverEdit.y=start.y-(ev.clientY-start.py)/start.oy*100;
+      clampCover(); applyCoverEdit(); });
+    const end=()=>{ start=null; c.classList.remove("grabbing"); };
+    c.addEventListener("pointerup",end); c.addEventListener("pointercancel",end);
+  });
+  /* drop gambar ke cover watchlist */
+  const hasFiles = ev => ev.dataTransfer && Array.from(ev.dataTransfer.types||[]).includes("Files");
+  main.querySelectorAll(".cover[data-cover]").forEach(c=>{
+    c.addEventListener("dragover",ev=>{ if(!hasFiles(ev)) return; ev.preventDefault(); ev.dataTransfer.dropEffect="copy"; c.classList.add("drop"); });
+    c.addEventListener("dragleave",ev=>{ if(!c.contains(ev.relatedTarget)) c.classList.remove("drop"); });
+    c.addEventListener("drop",ev=>{ if(!hasFiles(ev)) return; ev.preventDefault(); c.classList.remove("drop"); const f=ev.dataTransfer.files[0]; if(f) setCover(c.dataset.cover, f); });
+  });
+}
+
+try{ const v=localStorage.getItem("ld-view"); if(v && VIEWS[v]) S.view=v; }catch(e){}
+render();
+})();
+</script>

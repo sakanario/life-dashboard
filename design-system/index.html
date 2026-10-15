@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Super Cub Design System</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="components/bundle.css">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--teal); color: var(--ink); font-family: var(--font-sans); position: relative; isolation: isolate; }
+  /* Blurred scene behind everything, then a thin teal wash so ink stays legible. */
+  body::before, body::after { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; }
+  body::before { background: url("assets/bg-blur.jpg") center / cover no-repeat; filter: blur(24px) saturate(1.1); transform: scale(1.15); }
+  body::after { background: var(--teal); opacity: .28; }
+  [data-theme="dark"] body::before { filter: blur(24px) saturate(.9) brightness(.45); }
+  [data-theme="dark"] body::after { opacity: .55; }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: var(--space-6) var(--space-5) var(--space-7); display: grid; gap: var(--space-6); }
+
+  .top { display: flex; align-items: center; gap: var(--space-5); flex-wrap: wrap; }
+  .top h1 { margin: 0; font-size: 22px; font-weight: 700; }
+  .top nav { display: flex; gap: var(--space-5); flex-wrap: wrap; }
+  .top nav a { color: var(--ink); text-decoration: none; font-weight: 600; font-size: 15px; opacity: .6; }
+  .top nav a:hover, .top nav a:focus-visible { opacity: 1; }
+  .themes { margin-left: auto; display: flex; border-radius: var(--radius-pill); padding: var(--space-1); }
+  .themes button { border: 0; background: transparent; color: var(--ink); font: 600 12px/16px var(--font-sans); letter-spacing: .2em; padding: var(--space-2) var(--space-4); border-radius: var(--radius-pill); cursor: pointer; }
+  .themes button[aria-pressed="true"] { background: var(--orange); color: var(--on-orange); }
+  .themes button:focus-visible, .top nav a:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+
+  section { display: grid; gap: var(--space-4); scroll-margin-top: var(--space-5); }
+  section > h2 { margin: 0; font-size: 32px; line-height: 36px; font-weight: 600; }
+  section > p.lede { margin: -8px 0 0; font-weight: 500; max-width: 62ch; }
+
+  /* Frosted glass: the blurred scene shows through every card. */
+  :root { --glass: color-mix(in srgb, var(--surface) 32%, transparent); --glass-edge: color-mix(in srgb, var(--surface) 70%, transparent); --glass-line: color-mix(in srgb, var(--ink) 12%, transparent); }
+  [data-theme="dark"] { --glass: color-mix(in srgb, var(--surface) 40%, transparent); --glass-edge: color-mix(in srgb, #ffffff 14%, transparent); }
+  .panel, .swatch, .comp, .themes { background: var(--glass); -webkit-backdrop-filter: blur(18px) saturate(1.3); backdrop-filter: blur(18px) saturate(1.3); }
+  .panel { border-radius: var(--radius-lg); padding: var(--space-5); min-width: 0; }
+
+  .cover-box { border-radius: var(--radius-lg); overflow: hidden; position: relative; }
+  .cover-box iframe { position: absolute; top: 0; left: 0; width: 960px; height: 288px; border: 0; transform-origin: 0 0; }
+
+  .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--space-4); }
+  .swatch { border-radius: var(--radius-lg); overflow: hidden; display: grid; grid-template-rows: 96px auto; }
+  .swatch .chip { box-shadow: inset 0 0 0 1px var(--hairline); border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+  .swatch .meta { padding: var(--space-4); display: grid; gap: var(--space-1); }
+  .swatch b { font-size: 15px; font-weight: 700; }
+  .swatch code { font: 600 12px/16px ui-monospace, "Cascadia Mono", Consolas, monospace; color: var(--ink-teal); }
+  .swatch p { margin: 0; font-size: 12px; line-height: 17px; color: var(--ink-muted); }
+
+  .type-list { display: grid; gap: 0; }
+  .type-row { display: grid; grid-template-columns: 180px 1fr; gap: var(--space-4); align-items: baseline; padding: var(--space-4) 0; border-top: 1px solid var(--glass-line); }
+  .type-row:first-child { border-top: 0; padding-top: 0; }
+  .type-row .spec { display: grid; gap: 2px; font-size: 12px; color: var(--ink-muted); }
+  .type-row .spec b { color: var(--ink); font-size: 14px; }
+  .type-row .sample { min-width: 0; overflow-wrap: anywhere; }
+
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+  .scale { display: grid; gap: var(--space-3); }
+  .scale-row { display: grid; grid-template-columns: 90px 52px 1fr; gap: var(--space-3); align-items: center; font-size: 13px; font-weight: 600; }
+  .scale-row span:nth-child(2) { color: var(--ink-muted); font-variant-numeric: tabular-nums; }
+  .bar { height: 16px; background: var(--orange); border-radius: 4px; }
+  .radii { display: flex; flex-wrap: wrap; gap: var(--space-4); }
+  .radius { display: grid; gap: var(--space-2); justify-items: center; font-size: 12px; font-weight: 600; }
+  .radius div { width: 88px; height: 88px; background: var(--navy); }
+  .radius span { color: var(--ink-muted); font-weight: 500; }
+
+  .comps { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: var(--space-4); }
+  .comp { border-radius: var(--radius-lg); overflow: hidden; display: grid; grid-template-rows: auto 1fr; min-width: 0; }
+  .comp.wide { grid-column: 1 / -1; }
+  .comp .frame { overflow-x: auto; background: var(--teal); }
+  .comp iframe { display: block; width: 100%; border: 0; }
+  .comp.wide iframe { min-width: 960px; }
+  .comp .info { padding: var(--space-4) var(--space-5) var(--space-5); display: grid; gap: var(--space-2); align-content: start; }
+  .comp .head { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
+  .comp h3 { margin: 0; font-size: 19px; font-weight: 800; }
+  .tag { font-size: 11px; font-weight: 700; letter-spacing: .15em; text-transform: uppercase; background: var(--teal-mist); color: var(--ink); padding: 2px var(--space-3); border-radius: var(--radius-pill); }
+  .comp p { margin: 0; font-size: 13px; line-height: 19px; color: var(--ink); }
+  .comp code, .rules code { font: 600 12px ui-monospace, "Cascadia Mono", Consolas, monospace; color: var(--ink-teal); }
+  .comp a { font-size: 12px; font-weight: 600; color: var(--orange-text); }
+
+  footer { font-size: 12px; font-weight: 500; }
+
+  @media (max-width: 720px) {
+    .two { grid-template-columns: 1fr; }
+    .type-row { grid-template-columns: 1fr; gap: var(--space-2); }
+    .comps { grid-template-columns: 1fr; }
+    .themes { margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>Super Cub</h1>
+    <nav aria-label="Sections">
+      <a href="#colors">Colors</a><a href="#type">Type</a><a href="#scales">Spacing &amp; radius</a><a href="#components">Components</a>
+    </nav>
+    <div class="themes" role="group" aria-label="Theme">
+      <button type="button" data-theme-btn="light" aria-pressed="true">light</button>
+      <button type="button" data-theme-btn="dark" aria-pressed="false">dark</button>
+    </div>
+  </header>
+
+  <div class="cover-box" id="cover"><iframe title="Cover" src="components/Cover/preview.html" scrolling="no"></iframe></div>
+
+  <section id="colors">
+    <h2>Colors</h2>
+    <p class="lede">White cards float on teal. Orange is for anything you press or measure, navy for media and secondary actions.</p>
+    <div class="swatches" id="swatches"></div>
+  </section>
+
+  <section id="type">
+    <h2>Type</h2>
+    <p class="lede">One family, Montserrat. Heavy names, whispering wide-tracked labels.</p>
+    <div class="panel type-list" id="typeList"></div>
+  </section>
+
+  <section id="scales">
+    <h2>Spacing &amp; radius</h2>
+    <div class="two">
+      <div class="panel scale" id="spacing"></div>
+      <div class="panel radii" id="radii"></div>
+    </div>
+  </section>
+
+  <section id="components">
+    <h2>Components</h2>
+    <p class="lede">Plain CSS in <code>components/bundle.css</code>, class prefix <code>sc-</code>. Each preview is live; open its file to inspect the markup.</p>
+    <div class="comps" id="comps"></div>
+  </section>
+
+  <footer>Generated from tokens.json and the component folders. Regenerate after editing tokens.</footer>
+</div>
+
+<script>
+const TOKENS = {"name": "Super Cub", "version": 1, "color": {"themes": [{"id": "light", "name": "Light"}, {"id": "dark", "name": "Dark"}], "tokens": [{"name": "teal", "value": {"light": "#8ec5c9", "dark": "#14303a"}, "usage": "Page ground. The sky-teal behind everything; cards float on it. Text on it is ink, never white body copy."}, {"name": "teal-mist", "value": {"light": "#c2e1e3", "dark": "#2b5660"}, "usage": "Lighter teal for the lower sweep of the ground, wells and quiet fills. Ink text only."}, {"name": "teal-deep", "value": {"light": "#6ea8ac", "dark": "#4f9ba1"}, "usage": "Decorative only: giant ghost letterforms and + sparkles on the teal ground. Never carries text that must be read."}, {"name": "surface", "value": {"light": "#ffffff", "dark": "#26204a"}, "usage": "Floating cards, search field, pill buttons. Ink, ink-muted, ink-teal and orange-text are legible on it in both themes."}, {"name": "ink", "value": {"light": "#2b2350", "dark": "#f3f1fa"}, "usage": "Titles and body text on surface and on teal (7.7:1 on teal in light)."}, {"name": "ink-muted", "value": {"light": "#6e6c80", "dark": "#b3afc9"}, "usage": "Captions such as 'Price (dollar/$) :' and placeholder text, on surface only (fails on teal)."}, {"name": "ink-teal", "value": {"light": "#3d7a7f", "dark": "#8fcfd3"}, "usage": "Secondary line under a card title (the artist under a track). On surface only."}, {"name": "orange", "value": {"light": "#f7900a", "dark": "#ff9d1f"}, "usage": "Cub orange. Primary actions, price pills, equalizer bars, app tiles. Text on it is on-orange."}, {"name": "on-orange", "value": {"light": "#241d47", "dark": "#241d47"}, "usage": "Text and glyphs on an orange fill (6.4:1). The poster sets white on orange; that pair is 2.3:1 and fails, so white is kept for glyph tiles of 32px+ only."}, {"name": "orange-text", "value": {"light": "#a85600", "dark": "#ffb04d"}, "usage": "Orange as text or link on surface (5.2:1 light)."}, {"name": "navy", "value": {"light": "#2f2858", "dark": "#4b4190"}, "usage": "Media and secondary actions: play tile, MORE pill, footer band, the second square of a swatch pair."}, {"name": "on-navy", "value": {"light": "#ffffff", "dark": "#ffffff"}, "usage": "Text and glyphs on navy."}, {"name": "moss", "value": {"light": "#4d6e52", "dark": "#6f9a75"}, "usage": "Scooter green from the illustration. Accents and illustration only; never a UI state."}, {"name": "hairline", "value": {"light": "#e4e8ef", "dark": "#3b3462"}, "usage": "The rare divider inside a card. The system prefers space to rules."}, {"name": "focus-ring", "value": "{navy}", "usage": "Keyboard focus: 2px ring outside the element with a 2px gap in the ground colour. Navy reads on teal, white and orange."}]}, "type": {"fonts": [], "families": {"sans": "\"Montserrat\", \"Avenir Next\", \"Segoe UI\", system-ui, sans-serif"}, "groups": [{"name": "Display", "family": "sans", "styles": [{"name": "display", "fontSize": "64px", "lineHeight": "60px", "fontWeight": 600, "letterSpacing": "-0.01em", "sample": "Super Cub", "usage": "One per screen: the page subject, stacked on two lines over the teal ground."}, {"name": "heading", "fontSize": "32px", "lineHeight": "36px", "fontWeight": 600, "sample": "Koguma", "usage": "Section headings."}]}, {"name": "Text", "family": "sans", "styles": [{"name": "card-title", "fontSize": "22px", "lineHeight": "26px", "fontWeight": 800, "sample": "Mahou No Kaze", "usage": "Card titles in ink. Heavy and tight."}, {"name": "card-subtitle", "fontSize": "17px", "lineHeight": "20px", "fontWeight": 600, "sample": "Kumada Akane", "usage": "Line under a card title, in ink-teal."}, {"name": "nav", "fontSize": "18px", "lineHeight": "24px", "fontWeight": 600, "sample": "Home", "usage": "Top navigation links on teal."}, {"name": "body", "fontSize": "14px", "lineHeight": "20px", "fontWeight": 500, "sample": "Koguma lives by herself and rides a Super Cub to school.", "usage": "Descriptions inside cards."}, {"name": "caption", "fontSize": "11px", "lineHeight": "16px", "fontWeight": 500, "sample": "Price (dollar/$) :", "usage": "Field labels and meta, in ink-muted."}, {"name": "numeric", "fontSize": "18px", "lineHeight": "24px", "fontWeight": 700, "sample": "4:23", "usage": "Durations, counts. Use tabular numerals."}]}, {"name": "Labels", "family": "sans", "styles": [{"name": "label-tracked", "fontSize": "13px", "lineHeight": "16px", "fontWeight": 600, "letterSpacing": "0.3em", "sample": "search", "usage": "Lowercase, wide-tracked labels on pill controls and placeholders."}, {"name": "micro-caps", "fontSize": "9px", "lineHeight": "12px", "fontWeight": 700, "letterSpacing": "0.6em", "sample": "MORE", "usage": "Tiny spaced capitals on navy pills."}, {"name": "price", "fontSize": "11px", "lineHeight": "14px", "fontWeight": 700, "sample": "1.403,04 $", "usage": "Price inside an orange pill. Comma decimals, dot thousands, currency after."}]}]}, "spacing": {"tokens": [{"name": "space-1", "value": "4px", "usage": "Glyph to label, bar gaps in the equalizer."}, {"name": "space-2", "value": "8px", "usage": "Tile gaps inside the app-grid glyph; title to subtitle."}, {"name": "space-3", "value": "12px", "usage": "Pill button inner padding (vertical x2)."}, {"name": "space-4", "value": "16px", "usage": "Gap between stacked elements in a card."}, {"name": "space-5", "value": "24px", "usage": "Card padding; page gutter on phones."}, {"name": "space-6", "value": "32px", "usage": "Gap between floating cards."}, {"name": "space-7", "value": "48px", "usage": "Page gutter on wide screens; section breaks."}]}, "radius": {"tokens": [{"name": "radius-sm", "value": "8px", "usage": "Inner tiles of the app-grid glyph, thumbnails' inner corners."}, {"name": "radius-md", "value": "14px", "usage": "Small square chips (the orange/navy swatch pair), thumbnails."}, {"name": "radius-lg", "value": "26px", "usage": "Floating cards."}, {"name": "radius-xl", "value": "32px", "usage": "Large icon tiles (app grid, play)."}, {"name": "radius-pill", "value": "999px", "usage": "Buttons, search field, price pills, name tags."}]}};
+const COMPONENTS = [{"name": "NavBar", "group": "Navigation", "height": 96, "wide": true, "path": "components/NavBar/preview.html", "paragraphs": ["A transparent top bar on the teal ground: a hamburger whose lines shorten downward, text links in `nav` (the current page at full ink, the rest at 55%), and on the right a surface pill for the account action beside the user or product name.", "The consumer provides the links, marks the current one with `aria-current=\"page\"`, and supplies the menu behaviour. Collapse the text links into the menu below 720px."]}, {"name": "SearchBar", "group": "Inputs", "height": 104, "wide": false, "path": "components/SearchBar/preview.html", "paragraphs": ["An orange pill button fused into the left end of a white pill field. Both labels are lowercase and wide-tracked; the placeholder reads \"write here\". The button sits inside the field with a `space-1` inset so the two pills read as one object.", "The consumer provides the submit handler and an accessible label for the field."]}, {"name": "Button", "group": "Actions", "height": 96, "wide": false, "path": "components/Button/preview.html", "paragraphs": ["Pill buttons with lowercase, wide-tracked labels. Primary (`sc-btn--primary`, orange) is the one main action in a view. Surface (`sc-btn--surface`) is for secondary actions sitting on teal, such as \"logout\". Navy (`sc-btn--navy`) is the tiny \"MORE\" pill at the foot of a card; CSS sets its label in spaced capitals.", "The consumer provides the label and the click handler. Text on orange is `on-orange`, never white."]}, {"name": "IconTile", "group": "Actions", "height": 136, "wide": false, "path": "components/IconTile/preview.html", "paragraphs": ["A large rounded square holding one bold filled glyph. Orange (`radius-xl`, 88px) for navigation hubs such as the app grid; navy (`radius-md`, 64px) for media controls such as play. The orange and navy `sc-swatch` pair is a decorative brand mark, not a control.", "The consumer provides the glyph as inline SVG drawn with `currentColor`, and an `aria-label`."]}, {"name": "NowPlaying", "group": "Cards", "height": 272, "wide": false, "path": "components/NowPlaying/preview.html", "paragraphs": ["A floating card for the current track: title in `card-title`, artist in `card-subtitle` (`ink-teal`), duration in `numeric`, then a four-bar orange equalizer with rounded tops. Bars may bounce while playing; hold them still under `prefers-reduced-motion`.", "The consumer provides the track, artist and duration, and drives the bar heights."]}, {"name": "ProductCard", "group": "Cards", "height": 216, "wide": false, "path": "components/ProductCard/preview.html", "paragraphs": ["A white card with the name and a unit caption on the left, an orange price pill at the bottom right of that column, and a rounded square thumbnail on the right. Prices read `1.403,04 $`: comma decimals, dot thousands, currency after.", "The consumer provides the name, the price string and a square image. The preview shows a placeholder drawn in token colours."]}, {"name": "InfoCard", "group": "Cards", "height": 236, "wide": false, "path": "components/InfoCard/preview.html", "paragraphs": ["A white card holding a short description in `body` and a navy \"MORE\" pill at the bottom right. Keep the copy to two to five sentences; longer text goes on the page the pill opens.", "The consumer provides the text and the MORE action."]}];
+
+const el = (tag, attrs = {}, ...kids) => {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "style") n.style.cssText = v; else if (k === "text") n.textContent = v; else n.setAttribute(k, v);
+  }
+  kids.flat().forEach(c => n.append(c));
+  return n;
+};
+const inlineCode = s => {
+  const frag = document.createDocumentFragment();
+  s.split(/(`[^`]+`)/).forEach(part => frag.append(part.startsWith("`") ? el("code", { text: part.slice(1, -1) }) : part));
+  return frag;
+};
+
+// Colors: read the live value so the swatch label follows the theme.
+const sw = document.getElementById("swatches");
+function renderSwatches() {
+  sw.replaceChildren();
+  const cs = getComputedStyle(document.documentElement);
+  TOKENS.color.tokens.forEach(t => {
+    let v = cs.getPropertyValue("--" + t.name).trim();
+    const alias = /^\{(.+)\}$/.exec(typeof t.value === "string" ? t.value : "");
+    if (alias) v = "→ " + alias[1];
+    sw.append(el("div", { class: "swatch" },
+      el("div", { class: "chip", style: `background: var(--${t.name})` }),
+      el("div", { class: "meta" }, el("b", { text: t.name }), el("code", { text: v }), el("p", { text: t.usage }))));
+  });
+}
+
+// Type
+const tl = document.getElementById("typeList");
+TOKENS.type.groups.forEach(g => g.styles.forEach(s => {
+  const spec = [s.fontSize, s.lineHeight && "/ " + s.lineHeight, s.fontWeight, s.letterSpacing && "· " + s.letterSpacing].filter(Boolean).join(" ");
+  tl.append(el("div", { class: "type-row" },
+    el("div", { class: "spec" }, el("b", { text: "." + s.name }), el("span", { text: spec }), el("span", { text: g.name })),
+    el("div", { class: `sample ${s.name}`, title: s.usage || "", text: s.sample || s.name })));
+}));
+
+// Spacing & radius
+const sp = document.getElementById("spacing");
+TOKENS.spacing.tokens.forEach(t => sp.append(el("div", { class: "scale-row", title: t.usage },
+  el("span", { text: t.name }), el("span", { text: t.value }), el("div", {}, el("div", { class: "bar", style: `width: var(--${t.name})` })))));
+const rd = document.getElementById("radii");
+TOKENS.radius.tokens.forEach(t => rd.append(el("div", { class: "radius", title: t.usage },
+  el("div", { style: `border-radius: var(--${t.name})` }), t.name, el("span", { text: t.value }))));
+
+// Components
+const comps = document.getElementById("comps");
+const frames = [];
+COMPONENTS.forEach(c => {
+  const iframe = el("iframe", { title: c.name + " preview", src: c.path, style: `height:${c.height}px`, loading: "lazy" });
+  frames.push(iframe);
+  iframe.addEventListener("load", () => {
+    try { const h = iframe.contentDocument.documentElement.scrollHeight; if (h > c.height) iframe.style.height = h + "px"; } catch (e) {}
+  });
+  comps.append(el("article", { class: "comp" + (c.wide ? " wide" : "") },
+    el("div", { class: "frame" }, iframe),
+    el("div", { class: "info" },
+      el("div", { class: "head" }, el("h3", { text: c.name }), c.group ? el("span", { class: "tag", text: c.group }) : ""),
+      ...c.paragraphs.map(p => el("p", {}, inlineCode(p))),
+      el("a", { href: c.path, target: "_blank", text: "Open preview" }))));
+});
+
+// Cover: one 960x288 layout, scaled to fit.
+const coverBox = document.getElementById("cover");
+const coverFrame = coverBox.querySelector("iframe");
+frames.push(coverFrame);
+function fitCover() {
+  const s = Math.min(1, coverBox.clientWidth / 960);
+  coverFrame.style.transform = `scale(${s})`;
+  coverBox.style.height = 288 * s + "px";
+}
+new ResizeObserver(fitCover).observe(coverBox);
+
+// Theme: set it on this page and pass it to each preview through its hash.
+const base = f => f.getAttribute("src").split("#")[0];
+function setTheme(theme) {
+  document.documentElement.setAttribute("data-theme", theme);
+  document.querySelectorAll("[data-theme-btn]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.themeBtn === theme)));
+  frames.forEach(f => { f.src = base(f) + "#" + theme; });
+  try { localStorage.setItem("sc-theme", theme); } catch (e) {}
+  renderSwatches();
+}
+document.querySelectorAll("[data-theme-btn]").forEach(b => b.addEventListener("click", () => setTheme(b.dataset.themeBtn)));
+let start = "light";
+try { start = localStorage.getItem("sc-theme") || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"); } catch (e) {}
+setTheme(start);
+</script>
+</body>
+</html>

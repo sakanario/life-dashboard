@@ -1,0 +1,17 @@
+<!-- @dsCard group="Inputs" height=104 -->
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Search bar</title>
+<link rel="stylesheet" href="../../tokens.css">
+<link rel="stylesheet" href="../bundle.css">
+<script>function scTheme() { if (location.hash === "#dark" || location.hash === "#light") document.documentElement.setAttribute("data-theme", location.hash.slice(1)); } scTheme(); addEventListener("hashchange", scTheme);</script>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap">
+<style>html,body{margin:0;height:100%}</style></head>
+<body>
+<div class="sc-stage">
+  <form class="sc-search" role="search" onsubmit="event.preventDefault()">
+    <button class="sc-search__go" type="submit">search</button>
+    <input class="sc-search__field" id="q" aria-label="Search" placeholder="write here">
+  </form>
+</div>
+</body></html>

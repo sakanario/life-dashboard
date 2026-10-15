@@ -1,0 +1,69 @@
+<!-- @dsCard height=288 -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Super Cub</title>
+<link rel="stylesheet" href="../../tokens.css">
+<link rel="stylesheet" href="../bundle.css">
+<script>function scTheme() { if (location.hash === "#dark" || location.hash === "#light") document.documentElement.setAttribute("data-theme", location.hash.slice(1)); } scTheme(); addEventListener("hashchange", scTheme);</script>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600&display=swap">
+<style>
+  html, body { margin:0; height:100%; }
+  body { background:var(--teal); color:var(--ink); font-family:var(--font-sans); overflow:hidden; }
+  .cover { position:relative; width:960px; height:288px; overflow:hidden; }
+  .art { position:absolute; top:0; left:480px; width:480px; height:288px; overflow:hidden; }
+  .art svg { display:block; width:480px; height:288px; }
+  .card { fill:var(--surface); rx:var(--radius-lg); }
+  .mist { fill:var(--teal-mist); rx:24px; }
+  .orange { fill:var(--orange); }
+  .navy { fill:var(--navy); rx:var(--radius-md); }
+  .moss { fill:var(--moss); rx:var(--radius-lg); }
+  .hub { rx:var(--radius-xl); }
+  .tile { rx:var(--radius-sm); }
+  .tile.cut { fill:var(--surface); }
+  .words { position:absolute; left:var(--space-6); bottom:var(--space-6); max-width:440px; }
+  .name { margin:0; font-size:104px; line-height:.95; font-weight:600; letter-spacing:-.01em; color:var(--ink); }
+  .tag { margin:var(--space-2) 0 0 6px; font-size:14px; line-height:20px; font-weight:500; color:var(--ink); }
+</style>
+</head>
+<body>
+<div class="cover">
+<div class="art" aria-hidden="true">
+<svg viewBox="0 0 480 288" width="480" height="288">
+<!--
+  blocks      surface 208x240 floating card bled off the top (radius-lg) · teal-mist 208x48 pill under it · navy 112x112 (radius-md) · orange 112x112 hub (radius-xl) · moss 128x272 bled off right and bottom (radius-lg) — about 38% of 960x288
+  arrangement one tall floating card with satellites, the orange/navy square pair stacked beside it, moss slab running off the edge like the scooter behind the cards
+  pattern     rounded tiles, from "Icon tiles are large rounded squares... the 2x2 app grid": the app-grid cut in surface out of the orange hub, an equalizer of orange tiles on the card, a tile column on moss with one merged two-wide
+  scales      tile 32 at space-2 gaps (pitch 40); bars 32 wide; insets space-4/space-5; corners radius-sm tiles, radius-md navy, radius-lg card and moss, radius-xl hub, mist pill rx 24 = half its height
+-->
+<rect class="card" x="16" y="-32" width="208" height="240" rx="26"/>
+<rect class="mist" x="16" y="224" width="208" height="48" rx="24"/>
+<rect class="navy" x="240" y="16" width="112" height="112" rx="14"/>
+<rect class="orange hub" x="240" y="144" width="112" height="112" rx="32"/>
+<rect class="moss" x="368" y="48" width="128" height="272" rx="26"/>
+<!-- equalizer on the card -->
+<rect class="orange tile" x="40" y="128" width="32" height="56" rx="8"/>
+<rect class="orange tile" x="80" y="72" width="32" height="112" rx="8"/>
+<rect class="orange tile" x="120" y="100" width="32" height="84" rx="8"/>
+<rect class="orange tile" x="160" y="120" width="32" height="64" rx="8"/>
+<!-- app grid cut out of the hub -->
+<rect class="tile cut" x="260" y="164" width="32" height="32" rx="8"/>
+<rect class="tile cut" x="300" y="164" width="32" height="32" rx="8"/>
+<rect class="tile cut" x="260" y="204" width="32" height="32" rx="8"/>
+<rect class="tile cut" x="300" y="204" width="32" height="32" rx="8"/>
+<!-- tile column on moss -->
+<rect class="orange tile" x="392" y="72" width="32" height="32" rx="8"/>
+<rect class="orange tile" x="392" y="112" width="72" height="32" rx="8"/>
+<rect class="orange tile" x="392" y="152" width="32" height="32" rx="8"/>
+<rect class="orange tile" x="432" y="152" width="32" height="32" rx="8"/>
+</svg>
+</div>
+<div class="words">
+<h1 class="name">Super<br>Cub</h1>
+<p class="tag">White cards floating on a teal morning sky.</p>
+</div>
+</div>
+</body>
+</html>

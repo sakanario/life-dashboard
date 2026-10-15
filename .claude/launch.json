@@ -1,0 +1,38 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "app",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
+      "port": 3000
+    },
+    {
+      "name": "design-system",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "5178",
+        "--directory",
+        "E:/code-project-v2/solo-project/life-dashboard-app/design-system"
+      ],
+      "port": 5178
+    },
+    {
+      "name": "mockup",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "5179",
+        "--directory",
+        "E:/code-project-v2/solo-project/life-dashboard-app/mockup"
+      ],
+      "port": 5179
+    }
+  ]
+}

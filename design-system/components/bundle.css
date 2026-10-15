@@ -1,0 +1,69 @@
+/* Super Cub components. Plain CSS, sc- prefix, built on tokens.css. */
+.sc-stage { background: var(--teal); padding: var(--space-5); font-family: var(--font-sans); color: var(--ink); display: flex; flex-wrap: wrap; gap: var(--space-4); align-items: center; min-height: 100%; box-sizing: border-box; }
+.sc-stage * { box-sizing: border-box; }
+:where(.sc-btn, .sc-search__go, .sc-tile, .sc-nav a):focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+
+/* Button */
+.sc-btn { font: 600 13px/16px var(--font-sans); letter-spacing: .3em; border: 0; border-radius: var(--radius-pill); padding: var(--space-3) var(--space-6); cursor: pointer; transition: transform .12s ease; }
+.sc-btn:active { transform: translateY(1px); }
+.sc-btn--primary { background: var(--orange); color: var(--on-orange); }
+.sc-btn--surface { background: var(--surface); color: var(--ink); }
+.sc-btn--navy { background: var(--navy); color: var(--on-navy); font-size: 9px; line-height: 12px; font-weight: 700; letter-spacing: .6em; text-transform: uppercase; padding: var(--space-2) var(--space-6); }
+
+/* Search bar: orange pill fused into a white pill field */
+.sc-search { display: flex; align-items: center; gap: var(--space-5); background: var(--surface); border-radius: var(--radius-pill); padding: var(--space-1) var(--space-5) var(--space-1) var(--space-1); width: 100%; max-width: 420px; }
+.sc-search__go { background: var(--orange); color: var(--on-orange); border: 0; border-radius: var(--radius-pill); font: 600 13px/16px var(--font-sans); letter-spacing: .3em; padding: var(--space-3) var(--space-6); cursor: pointer; }
+.sc-search__field { flex: 1; min-width: 0; border: 0; background: transparent; font: 500 13px/16px var(--font-sans); letter-spacing: .3em; color: var(--ink); outline: none; }
+.sc-search__field::placeholder { color: var(--ink-muted); }
+
+/* Icon tile */
+.sc-tile { display: inline-grid; place-items: center; width: 88px; height: 88px; border: 0; border-radius: var(--radius-xl); cursor: pointer; }
+.sc-tile--orange { background: var(--orange); color: var(--on-navy); }
+.sc-tile--navy { background: var(--navy); color: var(--on-navy); width: 64px; height: 64px; border-radius: var(--radius-md); }
+.sc-tile svg { width: 44%; height: 44%; fill: currentColor; }
+.sc-swatch { width: 48px; height: 48px; border-radius: var(--radius-md); }
+.sc-swatch--orange { background: var(--orange); }
+.sc-swatch--navy { background: var(--navy); }
+
+/* Card */
+.sc-card { background: var(--surface); border-radius: var(--radius-lg); padding: var(--space-5); color: var(--ink); }
+.sc-card__title { margin: 0; font-size: 22px; line-height: 26px; font-weight: 800; color: var(--ink); }
+.sc-card__sub { margin: 0; font-size: 17px; line-height: 20px; font-weight: 600; color: var(--ink-teal); }
+.sc-card__caption { margin: 0; font-size: 11px; line-height: 16px; font-weight: 500; color: var(--ink-muted); }
+.sc-price { display: inline-block; background: var(--orange); color: var(--on-orange); font-size: 11px; line-height: 14px; font-weight: 700; padding: var(--space-1) var(--space-4); border-radius: var(--radius-pill); font-variant-numeric: tabular-nums; }
+
+/* Now playing */
+.sc-player { display: grid; gap: var(--space-4); width: 300px; max-width: 100%; }
+.sc-player__time { font-size: 18px; line-height: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.sc-eq { display: flex; align-items: flex-end; gap: var(--space-1); height: 64px; }
+.sc-eq span { width: 28px; background: var(--orange); border-radius: var(--radius-sm); }
+
+/* Product card */
+.sc-product { display: grid; grid-template-columns: 1fr 112px; gap: var(--space-4); width: 340px; max-width: 100%; }
+.sc-product__body { display: grid; align-content: space-between; gap: var(--space-4); min-width: 0; }
+.sc-product__body .sc-card__title { font-size: 19px; line-height: 22px; }
+.sc-product__body .sc-price { justify-self: end; }
+.sc-product__thumb { aspect-ratio: 1; max-width: 100%; border-radius: var(--radius-md); background: var(--teal-mist); overflow: hidden; }
+.sc-product__thumb svg { display: block; width: 100%; height: 100%; }
+
+/* Info card */
+.sc-info { display: grid; gap: var(--space-5); width: 380px; max-width: 100%; }
+.sc-info p { margin: 0; font-size: 14px; line-height: 20px; font-weight: 500; }
+.sc-info .sc-btn { justify-self: end; }
+
+/* Nav bar */
+.sc-nav { display: flex; align-items: center; gap: var(--space-7); width: 100%; }
+.sc-nav__menu { width: 28px; display: grid; gap: 5px; }
+.sc-nav__menu i { display: block; height: 3px; border-radius: 2px; background: var(--ink); }
+.sc-nav__menu i:nth-child(2) { width: 80%; }
+.sc-nav__menu i:nth-child(3) { width: 55%; }
+.sc-nav a { font-size: 18px; line-height: 24px; font-weight: 600; color: var(--ink); text-decoration: none; opacity: .55; }
+.sc-nav a[aria-current="page"] { opacity: 1; }
+.sc-nav__end { margin-left: auto; display: flex; align-items: center; gap: var(--space-5); }
+.sc-nav__brand { font-size: 20px; font-weight: 600; color: var(--ink); }
+.sc-nav .sc-btn { letter-spacing: .02em; font-size: 14px; padding: var(--space-1) var(--space-6); }
+
+/* Fill helpers for inline SVG */
+.sc-fill-orange { fill: var(--orange); }
+.sc-fill-moss { fill: var(--moss); }
+.sc-fill-surface { fill: var(--surface); }

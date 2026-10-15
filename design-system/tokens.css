@@ -1,0 +1,97 @@
+/* Super Cub — generated from tokens.json */
+
+:root, [data-theme="light"] {
+  --teal: #8ec5c9;
+  --teal-mist: #c2e1e3;
+  --teal-deep: #6ea8ac;
+  --surface: #ffffff;
+  --ink: #2b2350;
+  --ink-muted: #6e6c80;
+  --ink-teal: #3d7a7f;
+  --orange: #f7900a;
+  --on-orange: #241d47;
+  --orange-text: #a85600;
+  --navy: #2f2858;
+  --on-navy: #ffffff;
+  --moss: #4d6e52;
+  --hairline: #e4e8ef;
+  --focus-ring: var(--navy);
+}
+
+[data-theme="dark"] {
+  --teal: #14303a;
+  --teal-mist: #2b5660;
+  --teal-deep: #4f9ba1;
+  --surface: #26204a;
+  --ink: #f3f1fa;
+  --ink-muted: #b3afc9;
+  --ink-teal: #8fcfd3;
+  --orange: #ff9d1f;
+  --on-orange: #241d47;
+  --orange-text: #ffb04d;
+  --navy: #4b4190;
+  --on-navy: #ffffff;
+  --moss: #6f9a75;
+  --hairline: #3b3462;
+  --focus-ring: var(--navy);
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --teal: #14303a;
+    --teal-mist: #2b5660;
+    --teal-deep: #4f9ba1;
+    --surface: #26204a;
+    --ink: #f3f1fa;
+    --ink-muted: #b3afc9;
+    --ink-teal: #8fcfd3;
+    --orange: #ff9d1f;
+    --on-orange: #241d47;
+    --orange-text: #ffb04d;
+    --navy: #4b4190;
+    --on-navy: #ffffff;
+    --moss: #6f9a75;
+    --hairline: #3b3462;
+    --focus-ring: var(--navy);
+    color-scheme: dark;
+  }
+}
+
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 26px;
+  --radius-xl: 32px;
+  --radius-pill: 999px;
+  --font-sans: "Montserrat", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+}
+
+.display { font-family: var(--font-sans); font-size: 64px; line-height: 60px; font-weight: 600; letter-spacing: -0.01em; }
+
+.heading { font-family: var(--font-sans); font-size: 32px; line-height: 36px; font-weight: 600; }
+
+.card-title { font-family: var(--font-sans); font-size: 22px; line-height: 26px; font-weight: 800; }
+
+.card-subtitle { font-family: var(--font-sans); font-size: 17px; line-height: 20px; font-weight: 600; }
+
+.nav { font-family: var(--font-sans); font-size: 18px; line-height: 24px; font-weight: 600; }
+
+.body { font-family: var(--font-sans); font-size: 14px; line-height: 20px; font-weight: 500; }
+
+.caption { font-family: var(--font-sans); font-size: 11px; line-height: 16px; font-weight: 500; }
+
+.numeric { font-family: var(--font-sans); font-size: 18px; line-height: 24px; font-weight: 700; }
+
+.label-tracked { font-family: var(--font-sans); font-size: 13px; line-height: 16px; font-weight: 600; letter-spacing: 0.3em; }
+
+.micro-caps { font-family: var(--font-sans); font-size: 9px; line-height: 12px; font-weight: 700; letter-spacing: 0.6em; }
+
+.price { font-family: var(--font-sans); font-size: 11px; line-height: 14px; font-weight: 700; }
