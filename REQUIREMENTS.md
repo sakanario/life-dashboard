@@ -1,6 +1,6 @@
-# Life Dashboard App — Requirements (draft v0.3)
+# Life Dashboard App — Requirements (draft v0.4)
 
-> Dibuat 2026-10-15 · v0.2: + Watchlist, auto-start, aturan semua file `.md` · v0.3: tampilan final = mockup (§6.9), atur posisi cover, menu samping bisa ditutup. Vault: `E:\claude-project\life-dashboard` · App: `E:\code-project-v2\solo-project\life-dashboard-app`
+> Dibuat 2026-10-15 · v0.2: + Watchlist, auto-start, aturan semua file `.md` · v0.3: tampilan final = mockup (§6.9), atur posisi cover, menu samping bisa ditutup · v0.4: quest selesai tercatat di jurnal, quest aktif cuma dari README proyek, jurnal kosong = belum nulis. Vault: `E:\claude-project\life-dashboard` · App: `E:\code-project-v2\solo-project\life-dashboard-app`
 
 ## 1. Tujuan
 
@@ -92,7 +92,7 @@ Semua checkbox `- [ ]` di vault disebut **quest** (dulu "task").
 |---|---|
 | `- [ ]` / `- [x]` | belum / selesai |
 | `@tag` | tag bebas (`@work`, `@konten`, ...) |
-| `done:YYYY-MM-DD` | otomatis ditambah app saat dicentang |
+| `done:YYYY-MM-DD` | otomatis ditambah app saat dicentang, dihapus saat batal centang |
 | indentasi 2 spasi | subquest |
 
 **Tidak ada deadline** (keputusan 2026-10-15). Urutan quest = urutan baris di file; pindahin baris buat ngatur prioritas.
@@ -102,6 +102,22 @@ JSON:
 { "id": "Projects/ai-maneh/README.md:12", "file": "...", "line": 12, "text": "Buat DB transaksi",
   "done": false, "tags": ["dev"], "project": "ai-maneh" }
 ```
+
+**Quest selesai tercatat di jurnal** (keputusan 2026-10-15). Mencentang quest = dua perubahan dalam satu aksi:
+
+1. Baris quest: `- [ ]` → `- [x]` + ` done:YYYY-MM-DD`
+2. Jurnal tanggal itu: satu bullet ditambah ke seksi `## Quest selesai` (jurnal dibuat dari template kalau belum ada)
+
+| Aksi | File quest | Jurnal |
+|---|---|---|
+| Centang | `- [x] Ganti password DB done:2026-10-15` | `- Ganti password DB · JIP` ditambah (tidak dobel kalau sudah ada) |
+| Batal centang | balik ke `- [ ] Ganti password DB` | baris itu dihapus dari jurnal tanggal `done:`-nya; seksi dihapus kalau kosong |
+| Centang lagi di hari lain | `done:` = tanggal baru | baris masuk ke jurnal hari itu |
+
+- Bolak-balik centang: hasil akhir selalu ikut klik terakhir. Server mengantrekan tulis per file, UI mengirim posisi terakhir saja
+- Baris jurnal yang sudah diedit user (tidak cocok persis) **tidak dihapus** saat batal centang; UI kasih tahu lewat toast
+- Quest `[x]` lama tanpa `done:` tidak dicatat (tanggalnya tidak diketahui)
+- Claude Code yang mencentang quest wajib ikut aturan yang sama (ditulis di `CLAUDE.md` vault)
 
 **Stabilitas ID:** ID = `file:line`. Saat menulis balik, client kirim juga teks quest-nya; server cek baris itu masih sama, kalau sudah geser (karena diedit Claude/user) server cari ulang berdasarkan teks. Kalau tidak ketemu → tolak + minta UI refresh. Markdown tidak dikotori ID.
 
@@ -116,15 +132,21 @@ highlight: Mulai bikin Life Dashboard
 habits: { subuh: done, quran: done, olahraga: missed }
 ---
 Ringkasan bebas hari ini: 1–3 paragraf atau beberapa bullet. Boleh ada @tag.
+
+## Quest selesai
+- Ganti password DB · JIP
+- Buat DB transaksi · AI Maneh
 ```
 
-- Seluruh body = `summary` (teks bebas, dirender sebagai markdown)
+- Body = `summary` (teks bebas, dirender sebagai markdown), **kecuali** seksi `## Quest selesai`
+- `## Quest selesai` dikelola app (lihat §5.1): bullet biasa `- <teks quest> · <proyek>` (bukan checkbox, biar tidak dobel jadi quest), selalu di akhir file. Tidak ikut textarea ringkasan dan tidak dihitung jumlah kata
+- **Jurnal kosong** (tanpa ringkasan, highlight, habit, dan quest selesai) dianggap belum nulis di heatmap, streak, dan peringatan bolong. File tidak pernah dihapus otomatis
 - Tidak ada mood dan tidak ada Rencana Besok (keputusan 2026-10-15)
 - Jurnal lama (header waktu, Habit Tracker, Rock/Sand, Insights) **tidak diubah isinya**. Cukup ditambah frontmatter `date`, dan seluruh body dianggap `summary`
 
 ```json
 { "date": "2026-10-15", "highlight": "...", "habits": { "subuh": "done", "quran": "done", "olahraga": "missed" },
-  "summary": "Ringkasan bebas...", "tags": ["work"] }
+  "summary": "Ringkasan bebas...", "questsDone": ["Ganti password DB · JIP"], "tags": ["work"] }
 ```
 
 ### 5.3 Habit — `Habits.md`
@@ -231,11 +253,12 @@ updated: 2026-10-15
 
 ### 6.1 Today (halaman utama)
 - Tanggal, highlight hari ini
-- **Jurnal hari ini**: highlight + textarea ringkasan. Kalau file hari ini belum ada, dibuat dari template saat pertama disimpan
+- **Jurnal hari ini**: highlight + textarea ringkasan + daftar quest selesai hari ini. Kalau file hari ini belum ada, dibuat dari template saat pertama disimpan
   - Panel **collapse secara default** (user nulis jurnal malam). Header nampilin status: "Belum ditulis" atau highlight + jumlah kata
   - Mulai jam 18.00, kalau belum ditulis, muncul penanda "waktunya nulis" (panel tetap tidak kebuka otomatis)
 - **Habit hari ini**: checklist dari `Habits.md`, tiap habit bisa dicentang atau ditandai **Terlewat**
-- **Quest**: satu list gabungan semua quest terbuka dari semua file (tanpa deadline), dikelompokkan per sumber: Uncategorize dulu, lalu per proyek (bisa di-collapse), filter Personal/Work. Quest yang dicentang pindah ke "Selesai hari ini" (berdasarkan `done:`). Quest dari proyek yang diarsip tidak ikut
+- **Quest**: satu list gabungan quest terbuka (tanpa deadline), dikelompokkan per sumber: Uncategorize dulu, lalu per proyek (bisa di-collapse), filter Personal/Work. Quest yang dicentang pindah ke "Selesai hari ini" (berdasarkan `done:`) dan tercatat di jurnal (§5.1). Quest dari proyek yang diarsip tidak ikut
+  - Sumber quest aktif (keputusan 2026-10-15): `Uncategorize.md`, `Projects/<slug>/README.md`, dan `Goals/*.md`. Checkbox di catatan lain proyek (diskusi, roadmap, dll) tetap di-index dan tampil di drawer proyek, tapi tidak masuk Hari ini. Checkbox di `Content/`, `Knowledge/`, `Journal/`, `Archive/` bukan quest aktif
   - Tombol **Tutup semua / Buka semua** di header card Quest (berlaku untuk grup yang lagi tampil sesuai filter; tidak mempengaruhi "Selesai hari ini"; disembunyikan kalau grup < 2). Status buka/tutup tiap grup diingat
 - Quick add quest (ke `Uncategorize.md` atau pilih proyek)
 - Peringatan kalau jurnal bolong (contoh: "terakhir nulis jurnal 13 Juli")
@@ -266,7 +289,8 @@ updated: 2026-10-15
 - Kalender/heatmap: hari ada jurnal, intensitas = panjang ringkasan
 - Streak per habit + streak jurnal
 - Timeline: per hari tampil highlight + ringkasan (bisa di-expand), filter tag
-- Buka & edit jurnal hari mana pun (form highlight/ringkasan, bukan text editor mentah)
+- Timeline juga nampilin quest selesai per hari (dari seksi `## Quest selesai`)
+- Buka & edit jurnal hari mana pun (form highlight/ringkasan/habit, bukan text editor mentah)
 
 ### 6.6 Notes (Knowledge & semua file)
 - File tree + pencarian full-text di seluruh vault (kecuali `_private/`)
@@ -311,7 +335,7 @@ updated: 2026-10-15
 | GET | `/api/habits?from&to` | definisi + status harian |
 | GET | `/api/notes/tree`, `/api/notes?path=`, `/api/search?q=` | catatan & pencarian |
 | POST | `/api/quests` | tambah quest ke file tertentu |
-| PATCH | `/api/quests/:id` | toggle / edit teks (body sertakan teks lama untuk validasi) |
+| PATCH | `/api/quests/:id` | toggle / edit teks (body sertakan teks lama untuk validasi). Toggle sekalian update `## Quest selesai` di jurnal |
 | PUT | `/api/journal/:date` | simpan jurnal (highlight, habits, summary) |
 | POST | `/api/projects/:slug/archive`, `/api/projects/:slug/restore` | arsip / pulihkan (update frontmatter + pindah folder) |
 | PATCH | `/api/frontmatter` | ubah field frontmatter file mana pun (status, stage, ...) |
@@ -330,6 +354,8 @@ updated: 2026-10-15
 - Cek konflik: bandingkan `mtime`/isi baris sebelum tulis; kalau berubah → tolak, UI refresh
 - Tulis atomik (tulis ke file sementara → rename)
 - Path selalu divalidasi berada di dalam `VAULT_PATH`, `_private/` dan `.obsidian/` ditolak
+- Endpoint tulis cuma terima `Content-Type: application/json` dan menolak `Origin` dari situs lain (biar halaman web lain tidak bisa nulis ke vault lewat browser)
+- Tulis ke file yang sama diantrekan (tidak ada dua tulis bersamaan); aksi yang nyentuh dua file (quest + jurnal) mengunci keduanya
 
 ## 9. Keamanan
 
@@ -361,7 +387,7 @@ updated: 2026-10-15
 |---|---|---|
 | 0. Migrasi vault | Rombak struktur sesuai §4–5, update `CLAUDE.md` vault, `.gitignore`, fix git safe.directory | Semua file sesuai skema, tidak ada konten hilang (dicek via diff) |
 | 1. Fondasi | Scaffold Next.js, parser + index + watcher, API read-only, layout + navigasi | Semua halaman tampil data asli (read-only) |
-| 2. Today + Journal + Habit | Form ringkasan jurnal, habit, quest hari ini, heatmap | Bisa nulis jurnal harian tanpa buka editor |
+| 2. Today + Journal + Habit | Form ringkasan jurnal, habit, centang & tambah quest (+ catat ke jurnal), edit jurnal hari mana pun | Bisa nulis jurnal harian tanpa buka editor |
 | 3. Projects + Goals | Quest CRUD, status, progress | Kelola quest proyek dari UI |
 | 4. Content kanban | Drag-drop stage, quick idea | Pipeline konten jalan dari UI |
 | 5. Notes + search + PIN | Reader, editor, pencarian, login | Bisa dibuka aman dari HP |
@@ -388,5 +414,8 @@ updated: 2026-10-15
 - [x] Arsip proyek = status `archived` + pindah folder ke `Archive/Projects/` (2026-10-15)
 - [x] Tampilan final = mockup Super Cub (kaca translucent, tema terang default); `design-system/` tidak dipakai (2026-10-15)
 - [x] Posisi & zoom cover Watchlist bisa diatur, disimpan di `cover_pos` (2026-10-15)
+- [x] **Quest selesai tercatat di jurnal** hari itu, seksi `## Quest selesai` (2026-10-15)
+- [x] Quest aktif di Hari ini cuma dari `Uncategorize.md`, README proyek, dan Goals (2026-10-15)
+- [x] Jurnal kosong = belum nulis (heatmap, streak, peringatan bolong); file tidak dihapus otomatis (2026-10-15)
 - [ ] Daftar habit final (default diambil dari habit tracker Mei)
 - [ ] Link random di Dashboard (`x.com/CDPRED_Support/...`) → `Uncategorize.md` sebagai catatan, atau bikin modul bookmark?

@@ -1,16 +1,25 @@
 import "server-only";
 import { getVault } from "./index";
 import { addDays, dayDiff, fromIso, iso, todayIso } from "./dates";
+import { journalPath } from "./journal-format";
 import type { HabitState, JournalEntry, Project, Quest, VaultIndex } from "./types";
 
 /* ===== aturan bersama ===== */
 
-/** Quest yang tampil di daftar aktif: Uncategorize, proyek yang tidak diarsip, dan milestone goal. */
+/**
+ * Quest aktif (Hari ini): Uncategorize, README proyek yang tidak diarsip, dan milestone goal.
+ * Checkbox di catatan lain proyek (diskusi, roadmap) cuma tampil di drawer proyek. REQUIREMENTS §6.1
+ */
 export function liveQuests(v: VaultIndex): Quest[] {
-  const archived = new Set(v.projects.filter((p) => p.isArchived).map((p) => p.slug));
-  return v.quests.filter(
-    (q) => q.source === "uncat" || q.source === "goal" || (q.source === "project" && !archived.has(q.project!)),
-  );
+  const readme = new Set(v.projects.filter((p) => !p.isArchived).map((p) => p.file));
+  return v.quests.filter((q) => q.source === "uncat" || q.source === "goal" || (q.source === "project" && readme.has(q.file)));
+}
+
+/** Label proyek/goal buat baris di "## Quest selesai". */
+export function questLabel(v: VaultIndex, q: Quest): string | null {
+  if (q.project) return v.projects.find((p) => p.slug === q.project)?.title ?? q.project;
+  if (q.goal) return v.goals.find((g) => g.slug === q.goal)?.title ?? q.goal;
+  return null;
 }
 
 /** Uncategorize tanpa proyek: @work = work, sisanya personal. */
@@ -60,6 +69,9 @@ export function journalMap(v: VaultIndex) {
   return new Map(v.journal.map((j) => [j.date, j]));
 }
 
+/** Tanggal yang beneran dijurnal (jurnal kosong = belum nulis). */
+const writtenDates = (v: VaultIndex, upTo: string) => v.journal.filter((j) => !j.isEmpty && j.date <= upTo).map((j) => j.date);
+
 /** Streak habit: hari "done" berturut-turut sampai kemarin. Terlewat / kosong = putus. */
 export function habitBase(byDate: Map<string, JournalEntry>, id: string, today: string) {
   let n = 0;
@@ -72,7 +84,7 @@ export function heatLevel(words: number) {
 }
 
 function journalStats(v: VaultIndex, today: string) {
-  const dates = v.journal.map((j) => j.date).filter((d) => d <= today);
+  const dates = writtenDates(v, today);
   const set = new Set(dates);
   // streak sekarang: berakhir hari ini, atau kemarin kalau hari ini belum nulis
   let cur = 0;
@@ -116,8 +128,8 @@ export async function getToday() {
   return {
     today,
     weekday: fromIso(today).getDay(),
-    journal: tj ? { highlight: tj.highlight, summary: tj.summary, words: tj.words, file: tj.file } : null,
-    journalFile: `Journal/${today.slice(0, 4)}/${today.slice(5, 7)}/${today}.md`,
+    journal: tj ? { highlight: tj.highlight, summary: tj.summary, words: tj.words, file: tj.file, questsDone: tj.questsDone, mtime: tj.mtime } : null,
+    journalFile: journalPath(today),
     gap: stats.gapBeforeToday && stats.gapBeforeToday >= 2 ? { days: stats.gapBeforeToday, last: stats.lastBeforeToday!, hasToday: stats.hasToday } : null,
     habits: v.habits.map((h) => ({ ...h, state: (tj?.habits[h.id] ?? null) as HabitState | null, base: habitBase(byDate, h.id, today) })),
     open: live.filter((q) => !q.done).sort(byFile),
@@ -193,7 +205,7 @@ export async function getJournalPage() {
   const cells: { date: string; level: number }[] = [];
   for (let d = iso(startD); d <= today; d = addDays(d, 1)) {
     const j = byDate.get(d);
-    cells.push({ date: d, level: j ? Math.max(1, heatLevel(j.words)) : 0 });
+    cells.push({ date: d, level: j && !j.isEmpty ? Math.max(1, heatLevel(j.words)) : 0 });
   }
   const inWindow = cells.filter((c) => c.level > 0).length;
 
@@ -202,7 +214,7 @@ export async function getJournalPage() {
   const tj = byDate.get(today);
 
   // timeline: terbaru dulu, sisipin baris "N hari tanpa jurnal" kalau bolong ≥ 7 hari
-  const desc = [...v.journal].filter((j) => j.date <= today).reverse();
+  const desc = [...v.journal].filter((j) => j.date <= today && !j.isEmpty).reverse();
   type Row = { kind: "day"; entry: JournalEntry } | { kind: "gap"; days: number; from: string; to: string; questsDone: number };
   const rows: Row[] = [];
   const gapRow = (from: string, to: string): Row => ({
@@ -229,6 +241,9 @@ export async function getJournalPage() {
     habitsToday: { done: v.habits.filter((h) => tj?.habits[h.id] === "done").length, missed: v.habits.filter((h) => tj?.habits[h.id] === "missed").length, total: v.habits.length },
     strip,
     rows,
+    habitDefs: v.habits,
+    // semua jurnal (termasuk yang kosong) buat editor "buka tanggal"
+    entries: Object.fromEntries(v.journal.map((j) => [j.date, { highlight: j.highlight, summary: j.summary, habits: j.habits, questsDone: j.questsDone, file: j.file }])),
     tags: [...tagCount.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4).map(([t]) => t),
   };
 }

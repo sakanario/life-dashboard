@@ -7,15 +7,16 @@ import { watch, type FSWatcher } from "chokidar";
 import { EXCLUDED_DIRS, isExcluded, toPosix, vaultRoot } from "./paths";
 import { bodyTags, num, parseMd, parseQuests, plain, str, strList, wordCount } from "./parse";
 import { isIsoDate } from "./dates";
+import { splitJournalBody } from "./journal-format";
 import type {
   ContentItem, Goal, GoalHorizon, HabitDef, HabitState, JournalEntry, MdDoc, Project, ProjectStatus, Quest,
   QuestSource, VaultFile, VaultIndex, WatchItem,
 } from "./types";
 
 /* ===== state di globalThis biar selamat dari HMR dev ===== */
-type State = { index: VaultIndex | null; dirty: boolean; watcher: FSWatcher | null; bus: EventEmitter; timer: NodeJS.Timeout | null; changed: Set<string> };
+type State = { index: VaultIndex | null; dirty: boolean; root: string | null; watcher: FSWatcher | null; bus: EventEmitter; timer: NodeJS.Timeout | null; changed: Set<string> };
 const g = globalThis as unknown as { __vault?: State };
-const S: State = (g.__vault ??= { index: null, dirty: true, watcher: null, bus: new EventEmitter(), timer: null, changed: new Set() });
+const S: State = (g.__vault ??= { index: null, dirty: true, root: null, watcher: null, bus: new EventEmitter(), timer: null, changed: new Set() });
 S.bus.setMaxListeners(100);
 // modul ini (atau parser-nya) baru dimuat ulang → index lama mungkin dibangun pakai kode lama
 S.dirty = true;
@@ -30,8 +31,12 @@ export function onVaultChange(fn: (e: VaultEvent) => void): () => void {
 }
 
 function ensureWatcher() {
-  if (S.watcher) return;
   const root = vaultRoot();
+  if (S.watcher && S.root === root) return;
+  // VAULT_PATH berubah (mis. .env diedit) → watcher lama dibuang, index dibangun ulang
+  if (S.watcher) void S.watcher.close();
+  S.root = root;
+  S.dirty = true;
   S.watcher = watch(root, {
     ignoreInitial: true,
     ignored: (p: string) => {
@@ -50,6 +55,11 @@ function ensureWatcher() {
       S.bus.emit("change", { type: "change", paths, at: Date.now() } satisfies VaultEvent);
     }, 150);
   });
+}
+
+/** Tandai index basi (dipanggil writer habis nulis, biar request berikutnya baca ulang). */
+export function markDirty() {
+  S.dirty = true;
 }
 
 /**
@@ -192,8 +202,14 @@ function build(): VaultIndex {
         if (v === "done" || v === "missed") hb[k] = v;
       }
     }
-    const summary = d.body.trim();
-    journal.push({ date, file: d.path, highlight: str(d.fm.highlight) ?? "", habits: hb, summary, words: wordCount(plain(summary)), tags: bodyTags(summary) });
+    const { summary, questsDone } = splitJournalBody(d.body);
+    const highlight = str(d.fm.highlight) ?? "";
+    journal.push({
+      date, file: d.path, highlight, habits: hb, summary, questsDone,
+      words: wordCount(plain(summary)), tags: bodyTags(summary),
+      isEmpty: !summary && !highlight && !Object.keys(hb).length && !questsDone.length,
+      mtime: d.mtime,
+    });
   }
   journal.sort((a, b) => a.date.localeCompare(b.date));
 

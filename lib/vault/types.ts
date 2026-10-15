@@ -65,9 +65,12 @@ export type JournalEntry = {
   file: string;
   highlight: string;
   habits: Record<string, HabitState>;
-  summary: string;
+  summary: string; // teks user, tanpa seksi "## Quest selesai"
+  questsDone: string[]; // isi seksi "## Quest selesai"
   words: number;
   tags: string[];
+  isEmpty: boolean; // tanpa ringkasan, highlight, habit, & quest selesai → dianggap belum nulis
+  mtime: number;
 };
 
 export type HabitDef = { id: string; label: string };

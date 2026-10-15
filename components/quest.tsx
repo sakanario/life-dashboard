@@ -1,4 +1,10 @@
-import { ArcChip, RO_TITLE } from "./ui";
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useCallback, useRef, useState, useTransition } from "react";
+import { api, type ToggleResult } from "@/lib/client-api";
+import { toast } from "./toast";
+import { ArcChip } from "./ui";
 
 export type QuestRow = {
   id: string;
@@ -10,16 +16,99 @@ export type QuestRow = {
   depth: number;
 };
 
+/**
+ * Centang quest secara optimistis. Klik beruntun di quest yang sama dikirim berurutan,
+ * dan cuma posisi terakhir yang penting (REQUIREMENTS §5.1).
+ */
+export function useQuestToggle() {
+  const router = useRouter();
+  const [, startTransition] = useTransition();
+  const [over, setOver] = useState<Record<string, boolean>>({});
+  const jobs = useRef(new Map<string, { want: boolean; running: boolean; q: QuestRow }>());
+
+  const isDone = useCallback((q: QuestRow) => over[q.id] ?? q.done, [over]);
+
+  const run = useCallback(
+    async (key: string) => {
+      const j = jobs.current.get(key)!;
+      j.running = true;
+      let id = j.q.id, server = j.q.done, res: ToggleResult | null = null;
+      try {
+        while (j.want !== server) {
+          const want = j.want;
+          res = await api.toggleQuest(id, j.q.text, want);
+          id = res.id;
+          server = want;
+        }
+        if (res) {
+          const where = `${res.file}:${res.line}`;
+          if (res.done) toast(res.journal.action === "added" ? "Quest selesai, dicatat di jurnal" : "Quest selesai", where);
+          else if (res.journal.action === "not-found" && res.journal.file)
+            toast("Quest dibuka lagi. Baris di jurnal ga dihapus (udah diedit / ga ada)", res.journal.file);
+          else toast("Quest dibuka lagi", where);
+        }
+      } catch (e) {
+        toast((e as Error).message);
+      } finally {
+        jobs.current.delete(key);
+        // data server baru + buang status optimistis dalam satu transisi biar ga kedip
+        startTransition(() => {
+          router.refresh();
+          setOver((o) => {
+            const n = { ...o };
+            delete n[key];
+            return n;
+          });
+        });
+      }
+    },
+    [router],
+  );
+
+  const toggle = useCallback(
+    (q: QuestRow) => {
+      const want = !(over[q.id] ?? q.done);
+      setOver((o) => ({ ...o, [q.id]: want }));
+      const j = jobs.current.get(q.id);
+      if (j) j.want = want;
+      else jobs.current.set(q.id, { want, running: false, q });
+      if (!jobs.current.get(q.id)!.running) void run(q.id);
+    },
+    [over, run],
+  );
+
+  return { isDone, toggle };
+}
+
 export function QuestItem({
   q,
+  done = q.done,
+  onToggle,
+  readOnly,
+  readOnlyTitle,
+  idPrefix,
   project,
 }: {
   q: QuestRow;
+  done?: boolean;
+  onToggle?: (q: QuestRow, el: HTMLButtonElement) => void;
+  readOnly?: boolean;
+  readOnlyTitle?: string;
+  idPrefix?: string;
   project?: { title: string; type: string | null; isArchived: boolean } | null;
 }) {
   return (
-    <li className={"task" + (q.done ? " done" : "")} style={q.depth ? { paddingLeft: q.depth * 18 } : undefined}>
-      <button className="check" type="button" disabled title={RO_TITLE} aria-pressed={q.done} aria-label={"Tandai selesai: " + q.text} />
+    <li className={"task" + (done ? " done" : "")} style={q.depth ? { paddingLeft: q.depth * 18 } : undefined}>
+      <button
+        className="check"
+        type="button"
+        id={idPrefix ? idPrefix + q.id : undefined}
+        disabled={readOnly || !onToggle}
+        title={readOnly ? readOnlyTitle : undefined}
+        aria-pressed={done}
+        aria-label={(done ? "Batal selesai: " : "Tandai selesai: ") + q.text}
+        onClick={(e) => onToggle?.(q, e.currentTarget)}
+      />
       <div>
         <div className="t-text">{q.text}</div>
         <div className="t-meta">
