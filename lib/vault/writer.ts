@@ -258,7 +258,9 @@ export async function saveJournal(
     if (input.summary !== undefined) {
       const { head, section } = journalParts(d);
       const sum = norm(input.summary).split("\n");
-      d.lines = [...head, ...(sum.join("").trim() ? sum : []), ...(section.length ? ["", ...section] : [])];
+      // gaya file dijaga: kalau ada baris kosong setelah frontmatter, biarin tetap ada
+      const gap = head.length && d.lines.length > head.length + 1 && d.lines[head.length].trim() === "" ? [""] : [];
+      d.lines = [...head, ...(sum.join("").trim() ? [...gap, ...sum] : []), ...(section.length ? ["", ...section] : [])];
       trimEnd(d);
     }
 

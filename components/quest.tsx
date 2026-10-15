@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useRef, useState, useTransition } from "react";
+import { focusFirst } from "./habits";
 import { api, type ToggleResult } from "@/lib/client-api";
 import { toast } from "./toast";
 import { ArcChip } from "./ui";
@@ -80,7 +81,7 @@ export function useQuestToggle() {
   return { isDone, toggle };
 }
 
-export function QuestItem({
+export function QuestItem<T extends QuestRow>({
   q,
   done = q.done,
   onToggle,
@@ -89,9 +90,9 @@ export function QuestItem({
   idPrefix,
   project,
 }: {
-  q: QuestRow;
+  q: T;
   done?: boolean;
-  onToggle?: (q: QuestRow, el: HTMLButtonElement) => void;
+  onToggle?: (q: T, el: HTMLButtonElement) => void;
   readOnly?: boolean;
   readOnlyTitle?: string;
   idPrefix?: string;
@@ -129,5 +130,80 @@ export function QuestItem({
         </div>
       </div>
     </li>
+  );
+}
+
+/**
+ * Form tambah quest. `project` diisi = selalu ke README proyek itu (drawer);
+ * kalau `options` diisi, ada pilihan tujuan (Hari ini, default Uncategorize).
+ */
+export function AddQuestForm({
+  inputId,
+  project,
+  options,
+  onAdded,
+}: {
+  inputId: string;
+  project?: string;
+  options?: { slug: string; title: string }[];
+  onAdded?: (project: string | null) => void;
+}) {
+  const router = useRouter();
+  const [, startTransition] = useTransition();
+  const [text, setText] = useState("");
+  const [dest, setDest] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function submit() {
+    const t = text.trim();
+    if (!t || busy) return;
+    const target = project ?? (dest || null);
+    setBusy(true);
+    try {
+      const r = await api.addQuest(t, target);
+      toast("Quest ditambah", `${r.file}:${r.line}`);
+      setText("");
+      onAdded?.(target);
+      startTransition(() => router.refresh());
+    } catch (e) {
+      toast((e as Error).message);
+    } finally {
+      setBusy(false);
+      focusFirst([inputId]);
+    }
+  }
+
+  return (
+    <form
+      className="add-row"
+      onSubmit={(e) => {
+        e.preventDefault();
+        void submit();
+      }}
+    >
+      <input
+        id={inputId}
+        aria-label="Quest baru"
+        placeholder={options ? "Quest baru… (@tag boleh)" : "Quest baru…"}
+        autoComplete="off"
+        value={text}
+        readOnly={busy}
+        maxLength={500}
+        onChange={(e) => setText(e.target.value)}
+      />
+      {options ? (
+        <select aria-label="Simpan ke" value={dest} onChange={(e) => setDest(e.target.value)}>
+          <option value="">Uncategorize</option>
+          {options.map((p) => (
+            <option key={p.slug} value={p.slug}>
+              {p.title}
+            </option>
+          ))}
+        </select>
+      ) : null}
+      <button className="btn" type="submit" disabled={busy || !text.trim()}>
+        {busy ? "Nambah…" : "Tambah"}
+      </button>
+    </form>
   );
 }

@@ -30,3 +30,10 @@ export const fmtDate = (s: string | null | undefined) => {
   const [, m, d] = s.split("-").map(Number);
   return d + " " + BULAN[m - 1];
 };
+
+/** Waktu simpan terakhir file (mtime): "21:04" kalau hari ini, selain itu "13 Jul 21:04". */
+export const savedLabel = (mtime: number, today: string) => {
+  const d = new Date(mtime);
+  const hm = String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+  return iso(d) === today ? hm : fmtDate(iso(d)) + " " + hm;
+};

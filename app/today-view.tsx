@@ -2,12 +2,28 @@
 
 import Link from "next/link";
 import { useMemo, useState, useSyncExternalStore } from "react";
-import { QuestItem } from "@/components/quest";
+import { focusFirst, HabitRow, useHabitSetter, type HabitState } from "@/components/habits";
+import { JournalForm } from "@/components/journal-form";
+import { AddQuestForm, QuestItem, useQuestToggle } from "@/components/quest";
 import { Bar, RO_TITLE } from "@/components/ui";
 import type { getToday } from "@/lib/vault/views";
 
 type Data = Awaited<ReturnType<typeof getToday>>;
 type Kind = "all" | "personal" | "work";
+type Q = Data["open"][number];
+
+/** Grup tempat quest tampil di panel Quest. */
+const groupKey = (q: Q) => (q.source === "uncat" ? "uncat" : q.source === "goal" ? "goal:" + q.goal : (q.project ?? "uncat"));
+
+/** Habis centang / batal: fokus ke quest tetangga di grup yang sama, kalau ga ada ke ringkasan grup. */
+function focusPlan(el: HTMLElement, q: Q, wasDone: boolean) {
+  if (wasDone) return ["tk-" + q.id, "tgs-" + groupKey(q), "tdone-sum"];
+  const g = el.closest<HTMLElement>(".tgroup");
+  if (!g) return ["tk-" + q.id, "tdone-sum"];
+  const cs = [...g.querySelectorAll<HTMLElement>(".check")], i = cs.indexOf(el);
+  const sib = [g.nextElementSibling, g.previousElementSibling].filter((x): x is HTMLElement => !!x?.matches(".tgroup"));
+  return [cs[i + 1]?.id, cs[i - 1]?.id, "tgs-" + g.dataset.tg, ...sib.map((x) => "tgs-" + x.dataset.tg), "tdone-sum"];
+}
 
 const BULAN_PANJANG = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 const HARI = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
@@ -15,7 +31,6 @@ const longDate = (s: string) => {
   const [, m, d] = s.split("-").map(Number);
   return d + " " + BULAN_PANJANG[m - 1];
 };
-const wc = (s: string) => (s.trim().match(/\S+/g) || []).length;
 
 const IC_COLLAPSE = <path d="m7 20 5-5 5 5M7 4l5 5 5-5" />;
 const IC_EXPAND = <path d="m7 15 5 5 5-5M7 9l5-5 5 5" />;
@@ -35,6 +50,8 @@ export function TodayView({ data, greeting, hour, journalOpen: jOpen0 }: { data:
   const closed = useMemo<Record<string, boolean>>(() => { try { return JSON.parse(closedRaw); } catch { return {}; } }, [closedRaw]);
   const [journalOpen, setJournalOpen] = useState(jOpen0);
   const [doneOpen, setDoneOpen] = useState(false);
+  const { isDone, toggle } = useQuestToggle();
+  const habit = useHabitSetter(data.today);
 
   const saveClosed = (next: Record<string, boolean>) => {
     try { localStorage.setItem(TG_KEY, JSON.stringify(next)); } catch {}
@@ -42,8 +59,15 @@ export function TodayView({ data, greeting, hour, journalOpen: jOpen0 }: { data:
   };
 
   const inF = (k: "personal" | "work") => filter === "all" || k === filter;
-  const open = data.open.filter((q) => inF(q.kind));
-  const doneTd = data.doneToday.filter((q) => inF(q.kind));
+  // status optimistis: quest yang baru dicentang langsung pindah ke "Selesai hari ini"
+  const live = [...data.open, ...data.doneToday].filter((q) => inF(q.kind));
+  const open = live.filter((q) => !isDone(q));
+  const doneTd = live.filter((q) => isDone(q));
+  const onToggle = (q: Q, el: HTMLElement) => {
+    const ids = focusPlan(el, q, isDone(q));
+    toggle(q);
+    focusFirst(ids);
+  };
   const groups = data.groups
     .map((g) => ({
       ...g,
@@ -55,9 +79,10 @@ export function TodayView({ data, greeting, hour, journalOpen: jOpen0 }: { data:
   const anyOpen = groups.some((g) => !closed[g.key]);
 
   const j = data.journal;
-  const habitsTot = data.habits.length;
-  const hDone = data.habits.filter((h) => h.state === "done").length;
-  const hMissed = data.habits.filter((h) => h.state === "missed").length;
+  const habits = data.habits.map((h) => ({ ...h, state: habit.stateOf(h.id, h.state) as HabitState }));
+  const habitsTot = habits.length;
+  const hDone = habits.filter((h) => h.state === "done").length;
+  const hMissed = habits.filter((h) => h.state === "missed").length;
   const habitsOpen = habitsTot - hDone - hMissed;
 
   return (
@@ -110,7 +135,9 @@ export function TodayView({ data, greeting, hour, journalOpen: jOpen0 }: { data:
                             <span className="jmeta" aria-hidden="true">·</span>
                           </>
                         ) : null}
-                        <span className="jmeta">{j.words} kata</span>
+                        <span className="jmeta">
+                          {j.words} kata · disimpan {j.savedAt}
+                        </span>
                       </>
                     )}
                   </span>
@@ -119,24 +146,13 @@ export function TodayView({ data, greeting, hour, journalOpen: jOpen0 }: { data:
               <span className="src">{data.journalFile}</span>
             </div>
             <div id="jbody" hidden={!journalOpen}>
-              <form className="jform" onSubmit={(e) => e.preventDefault()}>
-                <div className="jfield">
-                  <label htmlFor="jhl">Highlight</label>
-                  <input type="text" id="jhl" defaultValue={j?.highlight ?? ""} placeholder="Satu hal paling penting hari ini" autoComplete="off" readOnly />
-                </div>
-                <div className="jfield">
-                  <label htmlFor="jsum">Ringkasan hari ini</label>
-                  <textarea id="jsum" rows={6} defaultValue={j?.summary ?? ""} placeholder="Hari ini ngapain aja? Bebas, 1–3 paragraf atau beberapa bullet." readOnly />
-                </div>
-                <div className="jfoot">
-                  <span className="hint">
-                    {wc(j?.summary ?? "")} kata · {j ? "dari file" : "belum ada file hari ini"}
-                  </span>
-                  <button className="btn primary" type="submit" disabled title={RO_TITLE}>
-                    Simpan
-                  </button>
-                </div>
-              </form>
+              <JournalForm
+                date={data.today}
+                highlight={j?.highlight ?? ""}
+                summary={j?.summary ?? ""}
+                savedAt={j?.savedAt ?? null}
+                questsDone={j?.questsDone ?? []}
+              />
             </div>
           </section>
 
@@ -183,6 +199,7 @@ export function TodayView({ data, greeting, hour, journalOpen: jOpen0 }: { data:
                   <details
                     key={g.key}
                     className="tgroup"
+                    data-tg={g.key}
                     open={!closed[g.key]}
                     onToggle={(e) => {
                       const isOpen = (e.currentTarget as HTMLDetailsElement).open;
@@ -190,14 +207,14 @@ export function TodayView({ data, greeting, hour, journalOpen: jOpen0 }: { data:
                       saveClosed({ ...closed, [g.key]: !isOpen });
                     }}
                   >
-                    <summary aria-label={`${g.title}, ${g.qs.length} terbuka`}>
+                    <summary id={"tgs-" + g.key} aria-label={`${g.title}, ${g.qs.length} terbuka`}>
                       {g.title}
                       {g.type ? <span className={"chip " + g.type}>{g.type}</span> : null}
                       <span className="n">{g.qs.length}</span>
                     </summary>
                     <ul className="tasks">
                       {g.qs.map((q) => (
-                        <QuestItem key={q.id} q={q} />
+                        <QuestItem key={q.id} q={q} done={false} onToggle={onToggle} idPrefix="tk-" />
                       ))}
                     </ul>
                   </details>
@@ -206,26 +223,21 @@ export function TodayView({ data, greeting, hour, journalOpen: jOpen0 }: { data:
             ) : (
               <p className="muted task-empty">Ga ada quest terbuka{filter === "all" ? "" : " di filter ini"}. Mantap.</p>
             )}
-            <form className="add-row" onSubmit={(e) => e.preventDefault()}>
-              <input aria-label="Quest baru" placeholder="Quest baru… (@tag boleh)" autoComplete="off" disabled title={RO_TITLE} />
-              <select aria-label="Simpan ke" disabled>
-                <option value="">Uncategorize</option>
-                {data.projectOptions.map((p) => (
-                  <option key={p.slug} value={p.slug}>
-                    {p.title}
-                  </option>
-                ))}
-              </select>
-              <button className="btn" type="submit" disabled title={RO_TITLE}>
-                Tambah
-              </button>
-            </form>
+            <AddQuestForm
+              inputId="ttext"
+              options={data.projectOptions}
+              onAdded={(p) => {
+                // grup tujuan dibuka biar quest barunya keliatan
+                const key = p ?? "uncat";
+                if (closed[key]) saveClosed({ ...closed, [key]: false });
+              }}
+            />
             <details className="tdone" open={doneOpen} onToggle={(e) => setDoneOpen((e.currentTarget as HTMLDetailsElement).open)}>
-              <summary>Selesai hari ini ({doneTd.length})</summary>
+              <summary id="tdone-sum">Selesai hari ini ({doneTd.length})</summary>
               {doneTd.length ? (
                 <ul className="tasks">
                   {doneTd.map((q) => (
-                    <QuestItem key={q.id} q={q} />
+                    <QuestItem key={q.id} q={q} done onToggle={onToggle} idPrefix="tk-" />
                   ))}
                 </ul>
               ) : (
@@ -252,28 +264,16 @@ export function TodayView({ data, greeting, hour, journalOpen: jOpen0 }: { data:
               </div>
             </div>
             <div className="habits">
-              {data.habits.map((h) => {
-                const sk = h.state === "done" ? h.base + 1 : h.state === "missed" ? 0 : h.base;
-                return (
-                  <div key={h.id} className={"habit" + (h.state ? " " + h.state : "")}>
-                    <button type="button" className="hb-tog" disabled title={RO_TITLE} aria-pressed={h.state === "done"} style={{ cursor: "default" }}>
-                      <span className="hb" aria-hidden="true" />
-                      <span className="hb-lbl">{h.label}</span>
-                    </button>
-                    {h.state === "missed" ? (
-                      <span className="hb-side">terlewat · besok lagi</span>
-                    ) : h.state === "done" ? (
-                      <span className="streak">{sk ? sk + " hari" : "—"}</span>
-                    ) : (
-                      <span className="hb-side">
-                        <button type="button" className="hb-txt" disabled title={RO_TITLE}>
-                          Terlewat
-                        </button>
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
+              {habits.map((h) => (
+                <HabitRow
+                  key={h.id}
+                  id={h.id}
+                  label={h.label}
+                  state={h.state}
+                  streak={h.state === "done" ? h.base + 1 : h.state === "missed" ? 0 : h.base}
+                  onSet={(want) => habit.set(h.id, h.label, data.habits.find((x) => x.id === h.id)!.state, want)}
+                />
+              ))}
             </div>
           </section>
 

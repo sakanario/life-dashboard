@@ -1,6 +1,6 @@
 import "server-only";
 import { getVault } from "./index";
-import { addDays, dayDiff, fromIso, iso, todayIso } from "./dates";
+import { addDays, dayDiff, fromIso, iso, savedLabel, todayIso } from "./dates";
 import { journalPath } from "./journal-format";
 import type { HabitState, JournalEntry, Project, Quest, VaultIndex } from "./types";
 
@@ -128,7 +128,7 @@ export async function getToday() {
   return {
     today,
     weekday: fromIso(today).getDay(),
-    journal: tj ? { highlight: tj.highlight, summary: tj.summary, words: tj.words, file: tj.file, questsDone: tj.questsDone, mtime: tj.mtime } : null,
+    journal: tj ? { highlight: tj.highlight, summary: tj.summary, words: tj.words, file: tj.file, questsDone: tj.questsDone, savedAt: savedLabel(tj.mtime, today) } : null,
     journalFile: journalPath(today),
     gap: stats.gapBeforeToday && stats.gapBeforeToday >= 2 ? { days: stats.gapBeforeToday, last: stats.lastBeforeToday!, hasToday: stats.hasToday } : null,
     habits: v.habits.map((h) => ({ ...h, state: (tj?.habits[h.id] ?? null) as HabitState | null, base: habitBase(byDate, h.id, today) })),
@@ -243,7 +243,9 @@ export async function getJournalPage() {
     rows,
     habitDefs: v.habits,
     // semua jurnal (termasuk yang kosong) buat editor "buka tanggal"
-    entries: Object.fromEntries(v.journal.map((j) => [j.date, { highlight: j.highlight, summary: j.summary, habits: j.habits, questsDone: j.questsDone, file: j.file }])),
+    entries: Object.fromEntries(
+      v.journal.map((j) => [j.date, { highlight: j.highlight, summary: j.summary, habits: j.habits, questsDone: j.questsDone, file: j.file, savedAt: savedLabel(j.mtime, today) }]),
+    ),
     tags: [...tagCount.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4).map(([t]) => t),
   };
 }

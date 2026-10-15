@@ -131,6 +131,7 @@ h3{font-size:1rem;font-weight:500}
 .jform{display:flex;flex-direction:column;gap:12px}
 .jfield{display:flex;flex-direction:column;gap:5px}
 .jfield > label{font-size:.78rem;font-weight:600;color:var(--muted)}
+.date-in{border:0;background:var(--field);color:var(--ink);border-radius:var(--r-sm);padding:5px 9px;font:inherit;font-size:.86rem;box-shadow:inset 0 1px 2px rgba(43,35,80,.06);color-scheme:light dark}
 .jform input[type="text"],.jform textarea{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:8px 10px;min-width:0;width:100%;font:inherit}
 .jform textarea{resize:vertical;min-height:8.5em;line-height:1.5}
 .jfoot{display:flex;align-items:center;gap:10px;flex-wrap:wrap}

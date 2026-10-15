@@ -3,7 +3,8 @@ import { Loading } from "@/components/ui";
 import { BULAN, fmtDate, fromIso } from "@/lib/vault/dates";
 import { plain } from "@/lib/vault/parse";
 import { getJournalPage } from "@/lib/vault/views";
-import { Timeline, type TimelineRow } from "./timeline";
+import { JournalDays } from "./editor";
+import type { TimelineRow } from "./timeline";
 
 async function Journal() {
   const d = await getJournalPage();
@@ -117,7 +118,7 @@ async function Journal() {
         )}
       </section>
 
-      <Timeline rows={rows} tags={d.tags} today={d.today} />
+      <JournalDays rows={rows} tags={d.tags} today={d.today} entries={d.entries} habitDefs={d.habitDefs} />
     </>
   );
 }

@@ -18,7 +18,7 @@ export type TimelineRow =
   | { kind: "day"; date: string; file: string; highlight: string; summary: string; tags: string[] }
   | { kind: "gap"; days: number; from: string; to: string; questsDone: number };
 
-export function Timeline({ rows, tags, today }: { rows: TimelineRow[]; tags: string[]; today: string }) {
+export function Timeline({ rows, tags, today, onEdit }: { rows: TimelineRow[]; tags: string[]; today: string; onEdit?: (date: string) => void }) {
   const [tag, setTag] = useState<string | null>(null);
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const shown = tag ? rows.filter((r) => r.kind === "day" && r.tags.includes(tag)) : rows;
@@ -66,7 +66,14 @@ export function Timeline({ rows, tags, today }: { rows: TimelineRow[]; tags: str
                 </span>
               </div>
               <div className="day-body">
-                <div className="day-hl">{r.highlight || "(tanpa highlight)"}</div>
+                <div className="day-hl" style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
+                  <span style={{ minWidth: 0 }}>{r.highlight || "(tanpa highlight)"}</span>
+                  {onEdit ? (
+                    <button type="button" className="more" style={{ marginLeft: "auto", flex: "none" }} aria-label={"Edit jurnal " + fmt(r.date)} onClick={() => onEdit(r.date)}>
+                      Edit
+                    </button>
+                  ) : null}
+                </div>
                 {r.summary ? (
                   <>
                     <p className={"day-sum" + (open[r.date] ? " open" : "")} id={"dsum-" + r.date} style={{ whiteSpace: open[r.date] ? "pre-wrap" : undefined }}>

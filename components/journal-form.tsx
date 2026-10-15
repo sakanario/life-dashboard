@@ -45,7 +45,13 @@ export function JournalForm({
     if (!draft || saving) return;
     setSaving(true);
     try {
-      const r = await api.saveJournal(date, { highlight: draft.hl, summary: draft.sum, base: { highlight: draft.base.hl, summary: draft.base.sum } });
+      // cuma field yang diubah yang dikirim, biar bagian file lain ga ikut dirapiin
+      const hlChanged = draft.hl !== draft.base.hl, sumChanged = draft.sum !== draft.base.sum;
+      const r = await api.saveJournal(date, {
+        highlight: hlChanged ? draft.hl : undefined,
+        summary: sumChanged ? draft.sum : undefined,
+        base: { highlight: draft.base.hl, summary: draft.base.sum },
+      });
       toast(r.created ? "Jurnal dibuat & disimpan" : "Jurnal disimpan", r.file);
       setConflict(false);
       startTransition(() => {

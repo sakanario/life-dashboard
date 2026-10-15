@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { NavIcon } from "@/components/icons";
-import { QuestItem } from "@/components/quest";
+import { focusFirst } from "@/components/habits";
+import { AddQuestForm, QuestItem, useQuestToggle } from "@/components/quest";
 import { Bar, RO_TITLE } from "@/components/ui";
 import type { getProjects } from "@/lib/vault/views";
 
@@ -145,6 +146,7 @@ export function ProjectsView({ projects, initialFilter, initialOpen }: { project
 
 function Drawer({ p, onClose }: { p: P; onClose: () => void }) {
   const [tab, setTab] = useState<"tasks" | "notes">("tasks");
+  const { isDone, toggle } = useQuestToggle();
   useEffect(() => {
     const k = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     document.addEventListener("keydown", k);
@@ -210,7 +212,18 @@ function Drawer({ p, onClose }: { p: P; onClose: () => void }) {
             {p.quests.length ? (
               <ul className="tasks">
                 {p.quests.map((q) => (
-                  <QuestItem key={q.id} q={q} />
+                  <QuestItem
+                    key={q.id}
+                    q={q}
+                    done={isDone(q)}
+                    idPrefix="dtk-"
+                    readOnly={arc}
+                    readOnlyTitle="Proyek diarsip (read-only)"
+                    onToggle={(x) => {
+                      toggle(x);
+                      focusFirst(["dtk-" + x.id]);
+                    }}
+                  />
                 ))}
               </ul>
             ) : (
@@ -219,12 +232,7 @@ function Drawer({ p, onClose }: { p: P; onClose: () => void }) {
               </p>
             )}
             {arc ? null : (
-              <form className="add-row" onSubmit={(e) => e.preventDefault()}>
-                <input aria-label="Quest baru" placeholder="Quest baru…" autoComplete="off" disabled title={RO_TITLE} />
-                <button className="btn" type="submit" disabled title={RO_TITLE}>
-                  Tambah
-                </button>
-              </form>
+              <AddQuestForm inputId="ptext" project={p.slug} />
             )}
           </>
         ) : (
