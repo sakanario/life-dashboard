@@ -24,7 +24,10 @@ export function Palette({ items, onClose }: { items: PaletteItem[]; onClose: () 
   );
   const shown = useMemo(() => {
     const s = q.toLowerCase();
-    return all.filter((x) => x.label.toLowerCase().includes(s)).slice(0, 9);
+    const hits = all.filter((x) => x.label.toLowerCase().includes(s));
+    // pencarian full-text selalu ada (paling bawah kalau ada yang cocok di judul, paling atas kalau ga ada)
+    const full: PaletteItem[] = q.trim().length >= 2 ? [{ label: `Cari “${q.trim()}” di isi semua catatan`, kind: "cari", href: `/notes?q=${encodeURIComponent(q.trim())}` }] : [];
+    return hits.length ? [...hits.slice(0, 8), ...full] : full;
   }, [all, q]);
 
   useEffect(() => input.current?.focus(), []);

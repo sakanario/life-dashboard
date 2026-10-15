@@ -1,4 +1,6 @@
 import "server-only";
+import { cookies } from "next/headers";
+import { SESSION_COOKIE, verifySessionToken } from "./auth";
 import { WriteError } from "./vault/writer";
 
 /**
@@ -26,8 +28,14 @@ export async function readJsonBody(req: Request): Promise<Record<string, unknown
   }
 }
 
+/** Dicek ulang di tiap route tulis, jangan cuma ngandelin proxy. */
+async function requireSession() {
+  if (!(await verifySessionToken((await cookies()).get(SESSION_COOKIE)?.value))) throw new WriteError(401, "Belum login");
+}
+
 export async function handleWrite(fn: () => Promise<unknown>): Promise<Response> {
   try {
+    await requireSession();
     return Response.json(await fn());
   } catch (e) {
     if (e instanceof WriteError) return Response.json({ error: e.message, detail: e.detail ?? null }, { status: e.status });

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { NAV, NavIcon, PanelIcon } from "./icons";
+import { api } from "@/lib/client-api";
 import { Palette, type PaletteItem } from "./palette";
 
 type Counts = { today: number; projects: number; content: number; watch: number };
@@ -122,9 +123,26 @@ export function Sidebar({ data }: { data: ShellData | null }) {
               {live ? "Vault tersinkron" : "Nyambung ke watcher…"} · <span className="tnum">{data?.fileCount ?? "…"} file</span>
             </div>
             <div className="sync mono">{live ? "watcher aktif" : "watcher belum nyambung"} · localhost:3000</div>
-            <button className="btn sm" type="button" onClick={toggleTheme}>
-              Ganti tema
-            </button>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              <button className="btn sm" type="button" onClick={toggleTheme}>
+                Ganti tema
+              </button>
+              <button
+                className="btn sm"
+                type="button"
+                onClick={async () => {
+                  try {
+                    await api.logout();
+                  } finally {
+                    // reload penuh: cache client yang isinya data vault ikut dibuang
+                    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+                    location.assign("/login");
+                  }
+                }}
+              >
+                Keluar
+              </button>
+            </div>
           </div>
         </div>
       </aside>

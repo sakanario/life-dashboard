@@ -1,9 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Montserrat, JetBrains_Mono } from "next/font/google";
-import { Suspense } from "react";
-import { Sidebar } from "@/components/sidebar";
 import { Toaster } from "@/components/toast";
-import { getShell } from "@/lib/vault/views";
 import "./globals.css";
 
 const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "500", "600", "700", "800"], variable: "--font-montserrat" });
@@ -22,10 +19,6 @@ export const viewport: Viewport = { width: "device-width", initialScale: 1, view
  */
 const BOOT = `(function(){var r=document.documentElement;try{if(localStorage.getItem("ld-theme")==="dark")r.dataset.theme="dark";if(localStorage.getItem("ld-side")==="closed")r.dataset.side="closed";}catch(e){}r.setAttribute("data-side-instant","");var off=function(){r.removeAttribute("data-side-instant")};requestAnimationFrame(function(){requestAnimationFrame(off)});setTimeout(off,300)})()`;
 
-async function ShellSidebar() {
-  return <Sidebar data={await getShell()} />;
-}
-
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="id" data-theme="light" className={`${montserrat.variable} ${jetbrains.variable}`} suppressHydrationWarning>
@@ -33,14 +26,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <script dangerouslySetInnerHTML={{ __html: BOOT }} />
       </head>
       <body>
-        <div className="app">
-          <Suspense fallback={<Sidebar data={null} />}>
-            <ShellSidebar />
-          </Suspense>
-          <main className="main" id="main">
-            {children}
-          </main>
-        </div>
+        {children}
         <Toaster />
       </body>
     </html>

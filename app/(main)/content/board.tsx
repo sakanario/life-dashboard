@@ -466,8 +466,8 @@ function ContentDrawer({
         <div className="jfield">
           <label>Script / catatan</label>
           {c.snip ? <p style={{ margin: 0, fontSize: ".9rem", whiteSpace: "pre-wrap" }}>{c.snip}{c.snip.length >= 180 ? "…" : ""}</p> : <p className="muted" style={{ margin: 0 }}>Masih kosong.</p>}
-          <Link className="btn sm" style={{ alignSelf: "flex-start", marginTop: 6 }} href={`/notes?path=${encodeURIComponent(c.file)}`}>
-            Buka di Catatan
+          <Link className="btn sm" style={{ alignSelf: "flex-start", marginTop: 6 }} href={`/notes?path=${encodeURIComponent(c.file)}&edit=1`}>
+            Edit script / catatan
           </Link>
         </div>
       </aside>

@@ -775,3 +775,40 @@ export async function createIdea(input: { title: string; project?: string | null
     return { slug, file: rel };
   });
 }
+
+/* ===== editor catatan (Fase 5) ===== */
+
+const NOTE_MAX = 2 * 1024 * 1024;
+
+/** Isi mentah + mtime langsung dari disk (bukan dari index) buat dibuka di editor. */
+export async function readNote(rel: string) {
+  const safe = resolveMd(rel);
+  try {
+    const [raw, st] = await Promise.all([fs.readFile(safe.abs, "utf8"), fs.stat(safe.abs)]);
+    return { path: safe.rel, raw, mtime: st.mtimeMs };
+  } catch (e) {
+    if ((e as NodeJS.ErrnoException).code === "ENOENT") throw new WriteError(404, "Catatan tidak ketemu");
+    throw e;
+  }
+}
+
+/**
+ * Simpan seluruh isi catatan. `baseMtime` = mtime waktu editor dibuka; kalau file udah berubah
+ * dari luar (Claude / Obsidian) → 409 + isi terbaru, biar user yang mutusin (REQUIREMENTS §8).
+ */
+export async function saveNote(rel: string, input: { content: string; baseMtime: number; force?: boolean }) {
+  if (input.content.length > NOTE_MAX) throw new WriteError(413, "Catatan kegedean (maks 2 MB)");
+  const safeRel = resolveMd(rel).rel;
+  return withLocks([safeRel], async () => {
+    const d = await readDoc(safeRel);
+    if (!d.exists) throw new WriteError(404, "Catatan tidak ketemu (mungkin dipindah / dihapus)");
+    const st = await fs.stat(d.abs);
+    if (!input.force && Math.abs(st.mtimeMs - input.baseMtime) > 1) {
+      throw new WriteError(409, "Catatan ini berubah dari luar sejak dibuka", { raw: docText(d), mtime: st.mtimeMs });
+    }
+    // gaya baris file dipertahankan (CRLF / LF)
+    d.lines = input.content.replace(/\r\n/g, "\n").split("\n");
+    await writeDoc(d);
+    return { path: safeRel, mtime: (await fs.stat(d.abs)).mtimeMs };
+  });
+}

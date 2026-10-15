@@ -2,8 +2,9 @@ import Link from "next/link";
 import { Suspense } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Loading, RO_TITLE } from "@/components/ui";
+import { Loading } from "@/components/ui";
 import { getNotes, type TreeNode } from "@/lib/vault/notes";
+import { NoteDoc } from "./note-editor";
 
 const href = (p: string) => `/notes?path=${encodeURIComponent(p)}`;
 
@@ -30,6 +31,7 @@ async function Notes({ searchParams }: { searchParams: PageProps<"/notes">["sear
   const sp = await searchParams;
   const sel = typeof sp.path === "string" ? sp.path : null;
   const q = typeof sp.q === "string" ? sp.q.trim() : "";
+  const edit = sp.edit === "1";
   const { tree, doc, results } = await getNotes(sel, q || null);
 
   return (
@@ -73,17 +75,9 @@ async function Notes({ searchParams }: { searchParams: PageProps<"/notes">["sear
               )}
             </>
           ) : doc ? (
-            <>
-              <div className="panel-h" style={{ marginBottom: 4 }}>
-                <span className="src">{doc.path}</span>
-                {doc.kind === "md" ? (
-                  <button className="btn sm" style={{ marginLeft: "auto" }} type="button" disabled title={RO_TITLE}>
-                    Edit
-                  </button>
-                ) : null}
-              </div>
-              {doc.kind === "md" ? (
-                <>
+            doc.kind === "md" ? (
+              <NoteDoc key={doc.path} path={doc.path} initialEdit={edit}>
+
                   {doc.fm && Object.keys(doc.fm).length ? (
                     <dl className="fm">
                       {Object.entries(doc.fm).map(([k, v]) => (
@@ -112,14 +106,20 @@ async function Notes({ searchParams }: { searchParams: PageProps<"/notes">["sear
                   >
                     {doc.md ?? ""}
                   </ReactMarkdown>
-                </>
-              ) : doc.kind === "image" ? (
+              </NoteDoc>
+            ) : (
+              <>
+                <div className="panel-h" style={{ marginBottom: 4 }}>
+                  <span className="src">{doc.path}</span>
+                </div>
+                {doc.kind === "image" ? (
                 // eslint-disable-next-line @next/next/no-img-element -- gambar dari vault lewat /api/assets
                 <img className="doc-img" src={`/api/assets?path=${encodeURIComponent(doc.path)}`} alt={doc.path} />
-              ) : (
-                <p className="muted">File ini aset (bukan teks atau gambar), cuma ditampilin di file tree.</p>
-              )}
-            </>
+                ) : (
+                  <p className="muted">File ini aset (bukan teks atau gambar), cuma ditampilin di file tree.</p>
+                )}
+              </>
+            )
           ) : sel ? (
             <p className="muted">File <span className="mono">{sel}</span> ga ketemu (atau ada di folder yang disembunyikan).</p>
           ) : (

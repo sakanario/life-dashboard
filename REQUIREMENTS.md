@@ -348,7 +348,9 @@ updated: 2026-10-15
 | POST / PATCH | `/api/watchlist`, `/api/watchlist/:slug` | tambah judul / update progress, status, rating |
 | PUT / DELETE | `/api/watchlist/:slug/cover` | upload (multipart) / hapus cover |
 | GET | `/api/assets?path=&w=` | serve gambar dari vault (Catatan & cover Watchlist) |
-| PUT | `/api/notes?path=` | simpan catatan bebas (cek `mtime` untuk deteksi konflik) |
+| GET | `/api/notes?path=&raw=1` | isi mentah + `mtime` dari disk (buat editor) |
+| PUT | `/api/notes?path=` | simpan catatan (body `content`, `baseMtime`; beda `mtime` → 409 + isi terbaru, `force` buat nimpa) |
+| POST | `/api/login`, `/api/logout` | login PIN (cookie sesi 30 hari) / keluar |
 | GET | `/api/events` | SSE: notifikasi file berubah |
 
 ## 8. Aturan Tulis Balik
@@ -363,7 +365,8 @@ updated: 2026-10-15
 
 ## 9. Keamanan
 
-- Default bind `localhost`. Akses dari HP lewat LAN / Tailscale → wajib login PIN (`APP_PIN`), sesi pakai cookie httpOnly
+- Default bind `localhost`. **Semua device wajib login PIN** (`APP_PIN`), termasuk localhost (keputusan 2026-10-15: Host header bisa dipalsuin dari LAN, jadi "lokal" ga bisa dipercaya). Sesi = cookie httpOnly 30 hari, ganti PIN = semua sesi batal. `APP_PIN` kosong = app terkunci total
+- Salah PIN 5x dalam 10 menit → login dikunci 10 menit
 - `_private/` tidak pernah di-index, dicari, atau dikirim lewat API
 - Vault + app tidak di-deploy ke internet publik
 - `/api/assets` cuma melayani ekstensi gambar, path divalidasi di dalam vault, `_private/` ditolak

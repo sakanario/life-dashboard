@@ -13,6 +13,13 @@ async function send<T>(method: string, url: string, body: unknown): Promise<T> {
   } catch {
     throw new ApiError(0, "Ga nyambung ke server");
   }
+  if (res.status === 401 && url !== "/api/login") {
+    // sesi habis / PIN diganti → ke halaman login, balik lagi ke sini habis masuk
+    // reload penuh (bukan router.push): cache client yang isinya data vault ikut dibuang
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+    location.assign("/login?next=" + encodeURIComponent(location.pathname + location.search));
+    throw new ApiError(401, "Sesi habis, login lagi");
+  }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new ApiError(res.status, data.error ?? `Gagal (${res.status})`, data.detail);
   return data as T;
@@ -31,6 +38,10 @@ export type QuestRef = { id: string; file: string; line: number };
 const qurl = (id: string) => `/api/quests/${encodeURIComponent(id)}`;
 
 export const api = {
+  login: (pin: string) => send<{ ok: true }>("POST", "/api/login", { pin }),
+  logout: () => send<{ ok: true }>("POST", "/api/logout", {}),
+  saveNote: (path: string, content: string, baseMtime: number, force = false) =>
+    send<{ path: string; mtime: number }>("PUT", `/api/notes?path=${encodeURIComponent(path)}`, { content, baseMtime, force }),
   toggleQuest: (id: string, text: string, done: boolean) =>
     send<ToggleResult>("PATCH", qurl(id), { text, done }),
   addQuest: (text: string, target: { project?: string | null; goal?: string | null }) =>
