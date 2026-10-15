@@ -4,6 +4,7 @@ import path from "node:path";
 import { getVault, markDirty, withWatcherPaused } from "./index";
 import { isIsoDate, todayIso } from "./dates";
 import { doneLine, findDoneSection, journalPath, QUEST_DONE_TITLE } from "./journal-format";
+import { PUBLISHED_STAGES, STAGE_KEYS } from "./content-format";
 import { parseMd, parseQuests } from "./parse";
 import { safeResolve } from "./paths";
 import type { HabitState, ProjectStatus, VaultIndex } from "./types";
@@ -668,6 +669,106 @@ export async function createGoal(input: { title: string; horizon: string; target
       ...(input.target ? [`target: ${input.target}`] : []),
       "---",
       ...(desc ? desc.split("\n") : []),
+      "",
+    ];
+    await writeDoc(d);
+    return { slug, file: rel };
+  });
+}
+
+/* ===== konten (Fase 4) ===== */
+
+/** Satu nilai YAML di dalam flow map / list: angka apa adanya, teks dikutip kalau perlu. */
+const flowVal = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? String(v) : yamlScalar(String(v)) || '""');
+
+export type ContentPatch = {
+  stage?: string;
+  platform?: string[];
+  project?: string | null;
+  published?: string | null;
+  stats?: { views?: number | null; comments?: number | null; retention?: string | null };
+};
+
+/** Ubah frontmatter konten per field. Masuk review/done & `published` kosong → diisi hari ini. */
+export async function updateContent(slug: string, patch: ContentPatch) {
+  const v = await getVault();
+  const c = v.content.find((x) => x.slug === slug);
+  if (!c) throw new WriteError(404, "Konten tidak ketemu");
+  if (patch.stage !== undefined && !STAGE_KEYS.includes(patch.stage)) throw new WriteError(400, `Stage tidak valid: ${patch.stage}`);
+  if (patch.platform && patch.platform.some((p) => !/^[\w-]{1,30}$/.test(p))) throw new WriteError(400, "Platform tidak valid");
+  if (patch.project && !v.projects.some((p) => p.slug === patch.project)) throw new WriteError(404, "Proyek tidak ketemu");
+  if (patch.published && !isIsoDate(patch.published)) throw new WriteError(400, "published harus YYYY-MM-DD");
+
+  return withLocks([c.file], async () => {
+    const d = await readDoc(c.file);
+    if (!d.exists) throw new WriteError(404, "File konten tidak ketemu");
+    const fm = fmOf(d);
+    const changed: string[] = [];
+
+    if (patch.stage !== undefined && patch.stage !== String(fm.stage ?? "")) {
+      setFmField(d, "stage", patch.stage);
+      changed.push("stage");
+      if (PUBLISHED_STAGES.includes(patch.stage) && !fm.published && patch.published === undefined) {
+        setFmField(d, "published", todayIso());
+        changed.push("published");
+      }
+    }
+    if (patch.platform !== undefined) {
+      const list = [...new Set(patch.platform)];
+      if (list.length) setFmField(d, "platform", `[${list.join(", ")}]`);
+      else removeFmField(d, "platform");
+      changed.push("platform");
+    }
+    if (patch.project !== undefined) {
+      if (patch.project) setFmField(d, "project", patch.project);
+      else removeFmField(d, "project");
+      changed.push("project");
+    }
+    if (patch.published !== undefined) {
+      if (patch.published) setFmField(d, "published", patch.published);
+      else removeFmField(d, "published");
+      changed.push("published");
+    }
+    if (patch.stats) {
+      // field stats lain (mis. likes) yang ditulis manual tetap dijaga
+      const old = fm.stats && typeof fm.stats === "object" && !Array.isArray(fm.stats) ? (fm.stats as Record<string, unknown>) : {};
+      const map: Record<string, unknown> = { ...old };
+      for (const [k, val] of Object.entries(patch.stats)) {
+        if (val === null || val === undefined || val === "") delete map[k];
+        else map[k] = val;
+      }
+      const keys = Object.keys(map).filter((k) => /^[\w-]+$/.test(k) && map[k] !== null && typeof map[k] !== "object");
+      if (keys.length) setFmField(d, "stats", `{ ${keys.map((k) => `${k}: ${flowVal(map[k])}`).join(", ")} }`);
+      else removeFmField(d, "stats");
+      changed.push("stats");
+    }
+    if (changed.length) await writeDoc(d);
+    return { file: c.file, changed, published: String(fmOf(d).published ?? "") || null };
+  });
+}
+
+/** Ide cepat: bikin `Content/<slug>.md` dengan `stage: idea`. */
+export async function createIdea(input: { title: string; project?: string | null; note?: string }) {
+  const title = input.title.replace(/[\r\n]+/g, " ").trim();
+  if (!title) throw new WriteError(400, "Judul ide kosong");
+  if (title.length > 200) throw new WriteError(400, "Judul kepanjangan");
+  const v = await getVault();
+  if (input.project && !v.projects.some((p) => p.slug === input.project && !p.isArchived)) throw new WriteError(404, "Proyek tidak ketemu");
+  const base = slugify(title) || "ide";
+  let slug = base;
+  for (let n = 2; await exists(safeResolve(`Content/${slug}.md`)!.abs); n++) slug = `${base}-${n}`;
+  const rel = `Content/${slug}.md`;
+  return withLocks([rel], async () => {
+    const d = await readDoc(rel);
+    if (d.exists) throw new WriteError(409, "Konten udah ada");
+    const note = (input.note ?? "").replace(/\r\n/g, "\n").trim();
+    d.lines = [
+      "---",
+      `title: ${yamlScalar(title)}`,
+      "stage: idea",
+      ...(input.project ? [`project: ${input.project}`] : []),
+      "---",
+      ...(note ? note.split("\n") : []),
       "",
     ];
     await writeDoc(d);

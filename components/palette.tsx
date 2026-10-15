@@ -16,7 +16,7 @@ export function Palette({ items, onClose }: { items: PaletteItem[]; onClose: () 
     () => [
       { label: "+ Catat jurnal", kind: "aksi", href: "/?jurnal=1" },
       { label: "+ Quest ke Uncategorize", kind: "aksi", href: "/#quest" },
-      { label: "+ Ide konten", kind: "aksi", href: "/content" },
+      { label: "+ Ide konten", kind: "aksi", href: "/content?ide=1" },
       ...NAV.map((n) => ({ label: n.label, kind: "halaman", href: n.href })),
       ...items,
     ],

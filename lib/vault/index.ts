@@ -95,6 +95,13 @@ export async function getVault(): Promise<VaultIndex> {
   return S.index;
 }
 
+/** `stats: { views, comments, retention }` di frontmatter konten; field lain dibiarin. */
+function statsOf(v: unknown): ContentItem["stats"] {
+  if (!v || typeof v !== "object" || Array.isArray(v)) return null;
+  const o = v as Record<string, unknown>;
+  return { views: num(o.views), comments: num(o.comments), retention: str(o.retention) };
+}
+
 /* ===== build ===== */
 function walk(root: string): VaultFile[] {
   const out: VaultFile[] = [];
@@ -204,6 +211,7 @@ function build(): VaultIndex {
       platform: strList(d.fm.platform),
       project: str(d.fm.project),
       published: str(d.fm.published),
+      stats: statsOf(d.fm.stats),
       snip: plain(d.body).slice(0, 180),
       file: d.path,
     });

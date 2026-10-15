@@ -342,7 +342,8 @@ updated: 2026-10-15
 | PUT | `/api/journal/:date` | simpan jurnal (highlight, habits, summary) |
 | POST | `/api/projects/:slug/archive`, `/api/projects/:slug/restore` | arsip / pulihkan (update frontmatter + pindah folder) |
 | PATCH | `/api/frontmatter` | ubah field frontmatter file mana pun (stage konten, ...). Status proyek & goal pakai endpoint masing-masing |
-| POST | `/api/content` | bikin konten baru |
+| POST | `/api/content` | ide cepat: bikin `Content/<slug>.md` dengan `stage: idea` |
+| PATCH | `/api/content/:slug` | ubah stage (drag-drop), platform, project, published, stats. Masuk `review`/`done` & `published` kosong → diisi hari ini |
 | GET | `/api/watchlist` | daftar judul |
 | POST / PATCH | `/api/watchlist`, `/api/watchlist/:slug` | tambah judul / update progress, status, rating |
 | PUT / DELETE | `/api/watchlist/:slug/cover` | upload (multipart) / hapus cover |

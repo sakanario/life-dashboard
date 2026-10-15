@@ -47,6 +47,17 @@ export const api = {
     send<{ slug: string; from: string; to: string; status: string }>("POST", `/api/projects/${encodeURIComponent(slug)}/restore`, { status }),
   createGoal: (body: { title: string; horizon: string; target?: string | null; desc?: string }) =>
     send<{ slug: string; file: string }>("POST", "/api/goals", body),
+  createIdea: (title: string, project?: string | null) => send<{ slug: string; file: string }>("POST", "/api/content", { title, project }),
+  updateContent: (
+    slug: string,
+    patch: {
+      stage?: string;
+      platform?: string[];
+      project?: string | null;
+      published?: string | null;
+      stats?: { views?: number | null; comments?: number | null; retention?: string | null };
+    },
+  ) => send<{ file: string; changed: string[]; published: string | null }>("PATCH", `/api/content/${encodeURIComponent(slug)}`, patch),
   setGoalStatus: (slug: string, status: string) => send<{ file: string; status: string }>("PATCH", `/api/goals/${encodeURIComponent(slug)}`, { status }),
   saveJournal: (
     date: string,

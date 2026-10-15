@@ -54,6 +54,7 @@ export type ContentItem = {
   platform: string[];
   project: string | null;
   published: string | null;
+  stats: { views: number | null; comments: number | null; retention: string | null } | null;
   snip: string;
   file: string;
 };
