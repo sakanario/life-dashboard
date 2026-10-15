@@ -9,7 +9,10 @@ export class ApiError extends Error {
 async function send<T>(method: string, url: string, body: unknown): Promise<T> {
   let res: Response;
   try {
-    res = await fetch(url, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+    res =
+      body instanceof FormData
+        ? await fetch(url, { method, body }) // multipart: boundary diisi browser
+        : await fetch(url, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
   } catch {
     throw new ApiError(0, "Ga nyambung ke server");
   }
@@ -36,6 +39,17 @@ export type ToggleResult = {
 
 export type QuestRef = { id: string; file: string; line: number };
 const qurl = (id: string) => `/api/quests/${encodeURIComponent(id)}`;
+const wurl = (slug: string) => `/api/watchlist/${encodeURIComponent(slug)}`;
+
+export type WatchPatchBody = {
+  epDelta?: 1 | -1;
+  progress?: number;
+  total?: number | null;
+  status?: string;
+  rating?: number | null;
+  type?: string;
+  coverPos?: { x: number; y: number; z: number } | null;
+};
 
 export const api = {
   login: (pin: string) => send<{ ok: true }>("POST", "/api/login", { pin }),
@@ -70,6 +84,16 @@ export const api = {
     },
   ) => send<{ file: string; changed: string[]; published: string | null }>("PATCH", `/api/content/${encodeURIComponent(slug)}`, patch),
   setGoalStatus: (slug: string, status: string) => send<{ file: string; status: string }>("PATCH", `/api/goals/${encodeURIComponent(slug)}`, { status }),
+  createWatch: (body: { title: string; type: string; status?: string; total?: number | null }) =>
+    send<{ slug: string; file: string }>("POST", "/api/watchlist", body),
+  updateWatch: (slug: string, patch: WatchPatchBody) =>
+    send<{ file: string; changed: string[]; progress: number; status: string }>("PATCH", wurl(slug), patch),
+  uploadCover: (slug: string, file: File) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    return send<{ file: string; cover: string; bytes: number }>("PUT", wurl(slug) + "/cover", fd);
+  },
+  removeCover: (slug: string) => send<{ file: string; removedFile: string | null }>("DELETE", wurl(slug) + "/cover", {}),
   saveJournal: (
     date: string,
     body: { highlight?: string; summary?: string; habits?: Record<string, "done" | "missed" | null>; base?: { highlight?: string; summary?: string } },

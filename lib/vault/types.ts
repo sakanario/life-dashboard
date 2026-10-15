@@ -85,6 +85,7 @@ export type WatchItem = {
   total: number | null;
   rating: number | null;
   cover: string | null; // path relatif vault
+  coverV: number; // mtime file cover, buat buang cache browser habis diganti
   coverPos: { x: number; y: number; z: number } | null;
   updated: string | null;
   file: string;

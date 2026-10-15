@@ -1,12 +1,14 @@
 import "server-only";
 import fs from "node:fs/promises";
 import path from "node:path";
+import sharp from "sharp";
 import { getVault, markDirty, withWatcherPaused } from "./index";
 import { isIsoDate, todayIso } from "./dates";
 import { doneLine, findDoneSection, journalPath, QUEST_DONE_TITLE } from "./journal-format";
 import { PUBLISHED_STAGES, STAGE_KEYS } from "./content-format";
-import { parseMd, parseQuests } from "./parse";
+import { num, parseMd, parseQuests } from "./parse";
 import { safeResolve } from "./paths";
+import { clampCoverPos, COVER_DIR, COVER_MAX_BYTES, COVER_MAX_WIDTH, coverPosValue, WATCH_STATUS, WATCH_TYPES, type CoverPos } from "./watch-format";
 import type { HabitState, ProjectStatus, VaultIndex } from "./types";
 
 /**
@@ -83,12 +85,17 @@ const docText = (d: Doc) => d.lines.join(d.eol);
 
 /** Tulis atomik: file sementara di folder yang sama → rename. */
 async function writeDoc(d: Doc) {
-  await fs.mkdir(path.dirname(d.abs), { recursive: true });
-  const tmp = `${d.abs}.${process.pid}.${Date.now()}.ld-tmp`;
-  await fs.writeFile(tmp, docText(d), "utf8");
+  await writeAtomic(d.abs, docText(d));
+  d.exists = true;
+}
+
+async function writeAtomic(abs: string, data: string | Uint8Array) {
+  await fs.mkdir(path.dirname(abs), { recursive: true });
+  const tmp = `${abs}.${process.pid}.${Date.now()}.ld-tmp`;
+  await fs.writeFile(tmp, data, typeof data === "string" ? "utf8" : undefined);
   for (let i = 0; ; i++) {
     try {
-      await fs.rename(tmp, d.abs);
+      await fs.rename(tmp, abs);
       break;
     } catch (e) {
       // Windows: file lagi dibuka app lain (Obsidian/antivirus) → coba lagi sebentar
@@ -101,7 +108,6 @@ async function writeDoc(d: Doc) {
       throw e;
     }
   }
-  d.exists = true;
   markDirty();
 }
 
@@ -810,5 +816,172 @@ export async function saveNote(rel: string, input: { content: string; baseMtime:
     d.lines = input.content.replace(/\r\n/g, "\n").split("\n");
     await writeDoc(d);
     return { path: safeRel, mtime: (await fs.stat(d.abs)).mtimeMs };
+  });
+}
+
+/* ===== watchlist (Fase 6) ===== */
+
+export type WatchPatch = {
+  epDelta?: number; // +1 ep dari kartu (atau -1 buat batal)
+  progress?: number;
+  total?: number | null;
+  status?: string;
+  rating?: number | null;
+  type?: string;
+  coverPos?: CoverPos | null;
+};
+
+async function findWatch(slug: string) {
+  const w = (await getVault()).watch.find((x) => x.slug === slug);
+  if (!w) throw new WriteError(404, "Judul tidak ketemu");
+  return w;
+}
+
+const isCount = (n: unknown): n is number => typeof n === "number" && Number.isInteger(n) && n >= 0 && n <= 1_000_000;
+
+/** Ubah frontmatter judul watchlist per field; `updated` ikut diisi hari ini kalau ada yang berubah. */
+export async function updateWatch(slug: string, patch: WatchPatch) {
+  if (patch.epDelta !== undefined && patch.epDelta !== 1 && patch.epDelta !== -1) throw new WriteError(400, "epDelta cuma boleh 1 / -1");
+  if (patch.progress !== undefined && !isCount(patch.progress)) throw new WriteError(400, "progress harus angka bulat ≥ 0");
+  if (patch.total !== undefined && patch.total !== null && (!isCount(patch.total) || patch.total < 1)) throw new WriteError(400, "total harus angka bulat ≥ 1");
+  if (patch.status !== undefined && !(WATCH_STATUS as readonly string[]).includes(patch.status)) throw new WriteError(400, `Status tidak valid: ${patch.status}`);
+  if (patch.type !== undefined && !(WATCH_TYPES as readonly string[]).includes(patch.type)) throw new WriteError(400, `Tipe tidak valid: ${patch.type}`);
+  if (patch.rating !== undefined && patch.rating !== null && !(Number.isInteger(patch.rating) && patch.rating >= 1 && patch.rating <= 10))
+    throw new WriteError(400, "Rating harus 1–10");
+  const w = await findWatch(slug);
+
+  return withLocks([w.file], async () => {
+    const d = await readDoc(w.file);
+    if (!d.exists) throw new WriteError(404, "File watchlist tidak ketemu");
+    const fm = fmOf(d);
+    const changed: string[] = [];
+    const cur = { progress: num(fm.progress) ?? 0, status: String(fm.status ?? "plan") };
+
+    let progress = patch.progress ?? cur.progress;
+    if (patch.epDelta) progress = Math.max(0, progress + patch.epDelta);
+    if (progress !== cur.progress) {
+      setFmField(d, "progress", String(progress));
+      changed.push("progress");
+    }
+    // nambah episode dari judul yang masih rencana = mulai nonton
+    const status = patch.status ?? (patch.epDelta === 1 && cur.status === "plan" ? "watching" : undefined);
+    if (status !== undefined && status !== cur.status) {
+      setFmField(d, "status", status);
+      changed.push("status");
+    }
+    if (patch.total !== undefined && patch.total !== (num(fm.total) ?? null)) {
+      if (patch.total) setFmField(d, "total", String(patch.total));
+      else removeFmField(d, "total");
+      changed.push("total");
+    }
+    if (patch.rating !== undefined && patch.rating !== (num(fm.rating) ?? null)) {
+      setFmField(d, "rating", patch.rating ? String(patch.rating) : "");
+      changed.push("rating");
+    }
+    if (patch.type !== undefined && patch.type !== String(fm.type ?? "")) {
+      setFmField(d, "type", patch.type);
+      changed.push("type");
+    }
+    if (patch.coverPos !== undefined) {
+      if (patch.coverPos) setFmField(d, "cover_pos", coverPosValue(clampCoverPos(patch.coverPos)));
+      else removeFmField(d, "cover_pos");
+      changed.push("cover_pos");
+    }
+    if (changed.length) {
+      setFmField(d, "updated", todayIso());
+      await writeDoc(d);
+    }
+    const after = fmOf(d);
+    return { file: w.file, changed, progress: num(after.progress) ?? 0, status: String(after.status ?? "plan") };
+  });
+}
+
+/** Tambah judul: bikin `Watchlist/<slug>.md`. */
+export async function createWatch(input: { title: string; type: string; status?: string; total?: number | null }) {
+  const title = input.title.replace(/[\r\n]+/g, " ").trim();
+  if (!title) throw new WriteError(400, "Judul kosong");
+  if (title.length > 200) throw new WriteError(400, "Judul kepanjangan");
+  if (!(WATCH_TYPES as readonly string[]).includes(input.type)) throw new WriteError(400, `Tipe tidak valid: ${input.type}`);
+  const status = input.status ?? "plan";
+  if (!(WATCH_STATUS as readonly string[]).includes(status)) throw new WriteError(400, `Status tidak valid: ${status}`);
+  if (input.total != null && (!isCount(input.total) || input.total < 1)) throw new WriteError(400, "total harus angka bulat ≥ 1");
+  const base = slugify(title) || "judul";
+  let slug = base;
+  for (let n = 2; await exists(safeResolve(`Watchlist/${slug}.md`)!.abs); n++) slug = `${base}-${n}`;
+  const rel = `Watchlist/${slug}.md`;
+  return withLocks([rel], async () => {
+    const d = await readDoc(rel);
+    if (d.exists) throw new WriteError(409, "Judul udah ada");
+    d.lines = [
+      "---",
+      `title: ${yamlScalar(title)}`,
+      `type: ${input.type}`,
+      `status: ${status}`,
+      "progress: 0",
+      ...(input.total ? [`total: ${input.total}`] : []),
+      "rating:",
+      `updated: ${todayIso()}`,
+      "---",
+      "",
+    ];
+    await writeDoc(d);
+    return { slug, file: rel };
+  });
+}
+
+/** Path cover hasil upload. Nama file dari slug, dibersihin biar aman di semua OS. */
+const coverRelOf = (slug: string) => `${COVER_DIR}/${slug.replace(/[^\w.-]+/g, "-").replace(/^\.+/, "") || "cover"}.webp`;
+
+/**
+ * Upload cover: re-encode ke webp (lebar maks 800px), simpan ke `Watchlist/_covers/<slug>.webp`,
+ * isi `cover`, posisi lama di-reset (gambar baru = framing baru).
+ */
+export async function setWatchCover(slug: string, data: Uint8Array) {
+  if (!data.length) throw new WriteError(400, "File kosong");
+  if (data.length > COVER_MAX_BYTES) throw new WriteError(413, "Gambar maks 5 MB");
+  const w = await findWatch(slug);
+  let webp: Buffer;
+  try {
+    webp = await sharp(data, { limitInputPixels: 60_000_000 })
+      .rotate() // ikut orientasi EXIF foto HP
+      .resize({ width: COVER_MAX_WIDTH, withoutEnlargement: true })
+      .webp({ quality: 82 })
+      .toBuffer();
+  } catch {
+    throw new WriteError(400, "File bukan gambar yang bisa dibaca");
+  }
+  const coverRel = coverRelOf(w.slug);
+  const safe = safeResolve(coverRel);
+  if (!safe) throw new WriteError(400, "Path cover tidak valid");
+  return withLocks([w.file, coverRel], async () => {
+    const d = await readDoc(w.file);
+    if (!d.exists) throw new WriteError(404, "File watchlist tidak ketemu");
+    await writeAtomic(safe.abs, webp);
+    setFmField(d, "cover", coverRel.slice("Watchlist/".length));
+    removeFmField(d, "cover_pos");
+    setFmField(d, "updated", todayIso());
+    await writeDoc(d);
+    return { file: w.file, cover: coverRel, bytes: webp.length };
+  });
+}
+
+/** Hapus cover: kosongkan `cover` & `cover_pos`. File gambar ikut dihapus kalau ada di `_covers/` (hasil upload app). */
+export async function removeWatchCover(slug: string) {
+  const w = await findWatch(slug);
+  const owned = w.cover && w.cover.startsWith(COVER_DIR + "/") ? safeResolve(w.cover) : null;
+  return withLocks([w.file, ...(owned ? [owned.rel] : [])], async () => {
+    const d = await readDoc(w.file);
+    if (!d.exists) throw new WriteError(404, "File watchlist tidak ketemu");
+    removeFmField(d, "cover");
+    removeFmField(d, "cover_pos");
+    setFmField(d, "updated", todayIso());
+    await writeDoc(d);
+    let removedFile: string | null = null;
+    if (owned) {
+      await fs.rm(owned.abs, { force: true });
+      removedFile = owned.rel;
+      markDirty();
+    }
+    return { file: w.file, removedFile };
   });
 }

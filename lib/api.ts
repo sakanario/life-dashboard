@@ -7,7 +7,7 @@ import { WriteError } from "./vault/writer";
  * Penjaga endpoint tulis: wajib JSON (biar form/halaman situs lain tidak bisa nembak
  * lewat "simple request") dan Origin harus sama dengan host yang diminta.
  */
-export async function readJsonBody(req: Request): Promise<Record<string, unknown>> {
+export function checkOrigin(req: Request) {
   const origin = req.headers.get("origin");
   if (origin) {
     const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host");
@@ -17,6 +17,10 @@ export async function readJsonBody(req: Request): Promise<Record<string, unknown
     } catch {}
     if (!ok) throw new WriteError(403, "Origin tidak diizinkan");
   }
+}
+
+export async function readJsonBody(req: Request): Promise<Record<string, unknown>> {
+  checkOrigin(req);
   if (!(req.headers.get("content-type") ?? "").toLowerCase().startsWith("application/json"))
     throw new WriteError(415, "Body harus JSON");
   try {

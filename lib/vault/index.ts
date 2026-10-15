@@ -8,6 +8,7 @@ import { EXCLUDED_DIRS, isExcluded, toPosix, vaultRoot } from "./paths";
 import { bodyTags, num, parseMd, parseQuests, plain, str, strList, wordCount } from "./parse";
 import { isIsoDate } from "./dates";
 import { splitJournalBody } from "./journal-format";
+import { WATCH_STATUS } from "./watch-format";
 import type {
   ContentItem, Goal, GoalHorizon, HabitDef, HabitState, JournalEntry, MdDoc, Project, ProjectStatus, Quest,
   QuestSource, VaultFile, VaultIndex, WatchItem,
@@ -129,7 +130,6 @@ function walk(root: string): VaultFile[] {
 
 const HORIZONS: GoalHorizon[] = ["vision", "medium", "year", "quarter"];
 const PROJECT_STATUS: ProjectStatus[] = ["idea", "active", "paused", "done", "archived"];
-const WATCH_STATUS = ["plan", "watching", "done", "dropped"] as const;
 
 function build(): VaultIndex {
   const root = vaultRoot();
@@ -251,12 +251,14 @@ function build(): VaultIndex {
 
   /* --- watchlist --- */
   const watchList: WatchItem[] = [];
+  const mtimeOf = new Map(files.map((f) => [f.path, f.mtime]));
   for (const d of docs.values()) {
     const m = /^Watchlist\/([^/]+)\.md$/i.exec(d.path);
     if (!m) continue;
     const pos = str(d.fm.cover_pos)?.split(/\s+/).map(Number);
     const st = str(d.fm.status);
     const cover = str(d.fm.cover);
+    const coverRel = cover ? `Watchlist/${cover.replace(/^\.?\/+/, "")}` : null;
     watchList.push({
       slug: m[1],
       title: str(d.fm.title) ?? m[1],
@@ -265,7 +267,8 @@ function build(): VaultIndex {
       progress: num(d.fm.progress) ?? 0,
       total: num(d.fm.total),
       rating: num(d.fm.rating),
-      cover: cover ? `Watchlist/${cover.replace(/^\.?\/+/, "")}` : null,
+      cover: coverRel,
+      coverV: coverRel ? Math.round(mtimeOf.get(coverRel) ?? 0) : 0,
       coverPos: pos && pos.length >= 2 && pos.every(Number.isFinite) ? { x: pos[0], y: pos[1], z: pos[2] ?? 1 } : null,
       updated: str(d.fm.updated),
       file: d.path,

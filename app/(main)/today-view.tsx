@@ -5,7 +5,8 @@ import { useMemo, useState, useSyncExternalStore } from "react";
 import { focusFirst, HabitRow, useHabitSetter, type HabitState } from "@/components/habits";
 import { JournalForm } from "@/components/journal-form";
 import { AddQuestForm, QuestItem, useQuestToggle } from "@/components/quest";
-import { Bar, RO_TITLE } from "@/components/ui";
+import { Bar } from "@/components/ui";
+import { useWatchEp } from "@/components/watch-ep";
 import type { getToday } from "@/lib/vault/views";
 
 type Data = Awaited<ReturnType<typeof getToday>>;
@@ -50,6 +51,7 @@ export function TodayView({ data, greeting, hour, journalOpen: jOpen0 }: { data:
   const closed = useMemo<Record<string, boolean>>(() => { try { return JSON.parse(closedRaw); } catch { return {}; } }, [closedRaw]);
   const [journalOpen, setJournalOpen] = useState(jOpen0);
   const [doneOpen, setDoneOpen] = useState(false);
+  const ep = useWatchEp();
   const { isDone, toggle } = useQuestToggle();
   const habit = useHabitSetter(data.today);
 
@@ -310,10 +312,10 @@ export function TodayView({ data, greeting, hour, journalOpen: jOpen0 }: { data:
                   <span>{w.title}</span>
                   <span style={{ display: "flex", gap: 8, alignItems: "center" }}>
                     <span className="mono tnum">
-                      ep {w.progress}
+                      ep {ep.progressOf(w)}
                       {w.total ? "/" + w.total : ""}
                     </span>
-                    <button className="btn sm" type="button" disabled title={RO_TITLE}>
+                    <button className="btn sm" type="button" aria-label={`+1 episode ${w.title}`} onClick={() => void ep.plusOne(w)}>
                       +1
                     </button>
                   </span>
