@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { Loading } from "@/components/ui";
 import { fmtDate } from "@/lib/vault/dates";
 import { getGoals } from "@/lib/vault/views";
-import { GoalCard, GoalsHead } from "./goal-ui";
+import { GoalCard, GoalsHead, VisionItem } from "./goal-ui";
 
 const HORIZON = [
   { key: "vision", label: "Big vision", sub: "jangka panjang" },
@@ -18,12 +18,11 @@ async function Goals() {
     <>
       <GoalsHead />
       <section className="panel">
-        {HORIZON.map((h) => {
+        {HORIZON.filter((h) => goals.some((g) => g.horizon === h.key)).map((h, i) => {
           const gs = goals.filter((g) => g.horizon === h.key);
-          if (!gs.length) return null;
           const quarterSub = h.key === "quarter" ? gs.find((g) => g.target)?.target : null;
           return (
-            <div key={h.key} className="horizon">
+            <div key={h.key} className="horizon" style={{ "--i": i } as React.CSSProperties}>
               <div className="horizon-label">
                 <span className="eyebrow">{h.label}</span>
                 <span className="muted" style={{ fontSize: ".82rem" }}>
@@ -32,16 +31,14 @@ async function Goals() {
               </div>
               {h.key === "vision" ? (
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  {gs.map((g) => (
-                    <p key={g.slug} className="vision" style={{ margin: 0 }}>
-                      {g.desc || g.title}
-                    </p>
+                  {gs.map((g, j) => (
+                    <VisionItem key={g.slug} g={g} i={j} />
                   ))}
                 </div>
               ) : (
                 <div className="goal-cards">
-                  {gs.map((g) => (
-                    <GoalCard key={g.slug} g={g} />
+                  {gs.map((g, j) => (
+                    <GoalCard key={g.slug} g={g} i={j} />
                   ))}
                 </div>
               )}

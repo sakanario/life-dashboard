@@ -90,6 +90,11 @@ export const api = {
     },
   ) => send<{ file: string; changed: string[]; published: string | null }>("PATCH", `/api/content/${encodeURIComponent(slug)}`, patch),
   setGoalStatus: (slug: string, status: string) => send<{ file: string; status: string }>("PATCH", `/api/goals/${encodeURIComponent(slug)}`, { status }),
+  updateGoal: (slug: string, patch: { title?: string; horizon?: string; target?: string | null; desc?: string }) =>
+    send<{ slug: string; file: string; changed: string[] }>("PATCH", `/api/goals/${encodeURIComponent(slug)}`, patch),
+  deleteGoal: (slug: string) => send<{ slug: string; from: string; to: string }>("DELETE", `/api/goals/${encodeURIComponent(slug)}`, {}),
+  restoreGoal: (slug: string, from: string) =>
+    send<{ slug: string; from: string; to: string }>("POST", `/api/goals/${encodeURIComponent(slug)}/restore`, { from }),
   createWatch: (body: { title: string; type: string; status?: string; total?: number | null }) =>
     send<{ slug: string; file: string }>("POST", "/api/watchlist", body),
   updateWatch: (slug: string, patch: WatchPatchBody) =>

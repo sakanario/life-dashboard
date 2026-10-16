@@ -31,6 +31,9 @@ export const strList = (v: unknown): string[] =>
 /* ---------- quest ---------- */
 const QUEST_RE = /^(\s*)[-*+] \[([ xX])\][ \t]+(.*?)\s*$/;
 const TAG_RE = /(^|\s)@([\p{L}\p{N}_-]+)/gu;
+
+/** Deskripsi goal = teks sebelum milestone pertama atau heading "## Quest" (yang ditambah app). */
+export const GOAL_DESC_END = /^\s*[-*+] \[[ xX]\]|^##\s+Quest\b/im;
 const DONE_RE = /(^|\s)done:(\d{4}-\d{2}-\d{2})\b/;
 
 export function parseQuests(

@@ -6,7 +6,7 @@ import { getVault, markDirty, withWatcherPaused } from "./index";
 import { isIsoDate, todayIso } from "./dates";
 import { doneLine, findDoneSection, journalPath, QUEST_DONE_TITLE } from "./journal-format";
 import { PUBLISHED_STAGES, STAGE_KEYS } from "./content-format";
-import { num, parseMd, parseQuests } from "./parse";
+import { GOAL_DESC_END, num, parseMd, parseQuests } from "./parse";
 import { safeResolve } from "./paths";
 import { clampCoverPos, COVER_DIR, COVER_MAX_BYTES, COVER_MAX_WIDTH, coverPosValue, WATCH_STATUS, WATCH_TYPES, type CoverPos } from "./watch-format";
 import type { HabitState, ProjectStatus, VaultIndex } from "./types";
@@ -702,6 +702,99 @@ export async function createGoal(input: { title: string; horizon: string; target
     ];
     await writeDoc(d);
     return { slug, file: rel };
+  });
+}
+
+export type GoalPatch = { title?: string; horizon?: string; target?: string | null; desc?: string };
+
+/** Edit goal: judul, horizon, target, deskripsi. Slug / nama file tetap, biar `goal:` di proyek ga putus. */
+export async function updateGoal(slug: string, patch: GoalPatch) {
+  const g = (await getVault()).goals.find((x) => x.slug === slug);
+  if (!g) throw new WriteError(404, "Goal tidak ketemu");
+  const title = patch.title?.replace(/[\r\n]+/g, " ").trim();
+  if (patch.title !== undefined && !title) throw new WriteError(400, "Judul goal kosong");
+  if (title && title.length > 200) throw new WriteError(400, "Judul kepanjangan");
+  if (patch.horizon !== undefined && !HORIZONS.includes(patch.horizon)) throw new WriteError(400, `Horizon tidak valid: ${patch.horizon}`);
+  if (patch.target && !isIsoDate(patch.target)) throw new WriteError(400, "Target harus YYYY-MM-DD");
+  return withLocks([g.file], async () => {
+    const d = await readDoc(g.file);
+    if (!d.exists) throw new WriteError(404, "File goal tidak ketemu");
+    const changed: string[] = [];
+    if (title && title !== g.title) {
+      setFmField(d, "title", yamlScalar(title));
+      changed.push("title");
+    }
+    if (patch.horizon !== undefined && patch.horizon !== g.horizon) {
+      setFmField(d, "horizon", patch.horizon);
+      changed.push("horizon");
+    }
+    if (patch.target !== undefined && (patch.target || null) !== g.target) {
+      if (patch.target) setFmField(d, "target", patch.target);
+      else removeFmField(d, "target");
+      changed.push("target");
+    }
+    if (patch.desc !== undefined) {
+      const desc = patch.desc.replace(/\r\n/g, "\n").trim();
+      // area deskripsi: sesudah frontmatter sampai milestone pertama / "## Quest" (sama kayak parser)
+      const start = fmEnd(d.lines) + 1;
+      let end = d.lines.findIndex((l, i) => i >= start && GOAL_DESC_END.test(l));
+      const hasRest = end >= 0;
+      if (!hasRest) end = d.lines.length;
+      if (d.lines.slice(start, end).join("\n").trim() !== desc) {
+        const body = desc ? desc.split("\n") : [];
+        d.lines.splice(start, end - start, ...body, ...(body.length || !hasRest ? [""] : []));
+        changed.push("desc");
+      }
+    }
+    if (changed.length) await writeDoc(d);
+    return { slug, file: g.file, changed };
+  });
+}
+
+/** Pindah satu file. Rename dicoba ulang kalau lagi dipegang app lain. */
+async function moveFile(fromRel: string, toRel: string) {
+  const from = safeResolve(fromRel), to = safeResolve(toRel);
+  if (!from || !to) throw new WriteError(400, "Path tidak valid");
+  if (await exists(to.abs)) throw new WriteError(409, `File tujuan udah ada: ${toRel}`);
+  await fs.mkdir(path.dirname(to.abs), { recursive: true });
+  await withWatcherPaused([fromRel, toRel], async () => {
+    for (let i = 0; ; i++) {
+      try {
+        await fs.rename(from.abs, to.abs);
+        return;
+      } catch (e) {
+        const code = (e as NodeJS.ErrnoException).code;
+        if (i < 6 && (code === "EPERM" || code === "EBUSY" || code === "EACCES")) {
+          await new Promise((r) => setTimeout(r, 100 * (i + 1)));
+          continue;
+        }
+        throw new WriteError(409, `File ga bisa dipindah (${code ?? "error"}). Mungkin lagi dibuka di Obsidian.`);
+      }
+    }
+  });
+}
+
+/** Hapus goal: file dipindah ke Archive/Goals/ (bisa diurungkan), ga dihapus permanen. */
+export async function deleteGoal(slug: string) {
+  const g = (await getVault()).goals.find((x) => x.slug === slug);
+  if (!g) throw new WriteError(404, "Goal tidak ketemu");
+  let to = `Archive/Goals/${slug}.md`;
+  for (let n = 2; await exists(safeResolve(to)!.abs); n++) to = `Archive/Goals/${slug}-${n}.md`;
+  return withLocks([g.file, to], async () => {
+    await moveFile(g.file, to);
+    return { slug, from: g.file, to };
+  });
+}
+
+/** Urungkan hapus: Archive/Goals/<x>.md balik ke Goals/<slug>.md. */
+export async function restoreGoal(archived: string, slug: string) {
+  if (!/^Archive\/Goals\/[^/]+\.md$/.test(archived)) throw new WriteError(400, "Path arsip goal tidak valid");
+  if (!/^[^/\\.][^/\\]*$/.test(slug)) throw new WriteError(400, "Slug tidak valid");
+  const to = `Goals/${slug}.md`;
+  return withLocks([archived, to], async () => {
+    if (!(await exists(resolveMd(archived).abs))) throw new WriteError(404, "File arsip goal tidak ketemu");
+    await moveFile(archived, to);
+    return { slug, from: archived, to };
   });
 }
 

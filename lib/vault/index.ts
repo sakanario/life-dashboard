@@ -5,7 +5,7 @@ import { EventEmitter } from "node:events";
 import { connection } from "next/server";
 import { watch, type FSWatcher } from "chokidar";
 import { EXCLUDED_DIRS, isExcluded, toPosix, vaultRoot } from "./paths";
-import { bodyTags, num, parseMd, parseQuests, plain, str, strList, wordCount } from "./parse";
+import { bodyTags, GOAL_DESC_END, num, parseMd, parseQuests, plain, str, strList, wordCount } from "./parse";
 import { isIsoDate } from "./dates";
 import { splitJournalBody } from "./journal-format";
 import { WATCH_STATUS } from "./watch-format";
@@ -193,8 +193,8 @@ function build(): VaultIndex {
       status: (["active", "done", "dropped"].includes(String(d.fm.status)) ? d.fm.status : "active") as Goal["status"],
       target: str(d.fm.target),
       metric: mt && typeof mt === "object" ? { label: str(mt.label) ?? "", current: num(mt.current), target: num(mt.target) } : null,
-      // deskripsi = teks sebelum milestone pertama atau heading "## Quest" (yang ditambah app)
-      desc: plain(d.body.split(/^\s*[-*+] \[[ xX]\]|^##\s+Quest\b/im)[0]),
+      desc: plain(d.body.split(GOAL_DESC_END)[0]),
+      descRaw: d.body.split(GOAL_DESC_END)[0].trim(),
       file: d.path,
     });
   }

@@ -44,6 +44,7 @@ export type Goal = {
   target: string | null;
   metric: { label: string; current: number | null; target: number | null } | null;
   desc: string;
+  descRaw: string; // markdown asli deskripsi (buat form edit)
   file: string;
 };
 
