@@ -71,7 +71,8 @@ export function JournalDays({
 function DayEditor({ date, today, entry, habitDefs }: { date: string; today: string; entry: Entry | null; habitDefs: Data["habitDefs"] }) {
   const habit = useHabitSetter(date);
   return (
-    <>
+    // di-key per tanggal → ganti tanggal, isi editor masuk halus
+    <div className="tswap">
       <p className="muted" style={{ margin: "0 0 10px", fontSize: ".86rem" }}>
         {longDay(date)}
         {date === today ? " · hari ini" : ""}
@@ -106,6 +107,6 @@ function DayEditor({ date, today, entry, habitDefs }: { date: string; today: str
           </div>
         </div>
       ) : null}
-    </>
+    </div>
   );
 }

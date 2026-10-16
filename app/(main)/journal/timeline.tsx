@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { SlideSeg } from "@/components/slide-seg";
 
 const BULAN = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
 const HARI = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
@@ -28,22 +29,16 @@ export function Timeline({ rows, tags, today, onEdit }: { rows: TimelineRow[]; t
       <div className="panel-h">
         <h2>Timeline</h2>
         {tags.length ? (
-          <div className="seg" style={{ marginLeft: "auto" }} role="group" aria-label="Filter tag">
-            <button type="button" aria-pressed={tag === null} onClick={() => setTag(null)}>
-              Semua
-            </button>
-            {tags.map((t) => (
-              <button key={t} type="button" aria-pressed={tag === t} onClick={() => setTag(t)}>
-                @{t}
-              </button>
-            ))}
+          <div style={{ marginLeft: "auto" }}>
+            <SlideSeg label="Filter tag" value={tag ?? ""} onChange={(t) => setTag(t || null)} options={[["", "Semua"], ...tags.map((t) => [t, "@" + t] as const)]} />
           </div>
         ) : null}
       </div>
-      <div className="timeline">
-        {shown.map((r) =>
+      {/* key = tag: ganti filter → daftar dipasang ulang, hari-hari muncul berurutan lagi */}
+      <div className="timeline" key={tag ?? ""}>
+        {shown.map((r, i) =>
           r.kind === "gap" ? (
-            <div key={"gap-" + r.from} className="day">
+            <div key={"gap-" + r.from} className="day" style={{ "--i": Math.min(i, 10) } as React.CSSProperties}>
               <div className="day-date">
                 <b style={{ color: "var(--warn)" }}>{r.days} hari</b>
                 <span className="muted" style={{ fontSize: ".8rem" }}>
@@ -57,7 +52,7 @@ export function Timeline({ rows, tags, today, onEdit }: { rows: TimelineRow[]; t
               </div>
             </div>
           ) : (
-            <div key={r.date} className="day">
+            <div key={r.date} className="day" style={{ "--i": Math.min(i, 10) } as React.CSSProperties}>
               <div className="day-date">
                 <b>{fmt(r.date)}</b>
                 <span className="muted" style={{ fontSize: ".8rem" }}>

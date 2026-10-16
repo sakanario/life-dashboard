@@ -3,8 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 
 type ToastMsg = { msg: string; file?: string; action?: { label: string; fn: () => void } };
+type Shown = ToastMsg & { id: number; ms: number };
 
 const EVT = "ld-toast";
+const OUT_MS = 220; // lama animasi keluar
 
 /** Tampilkan toast (gaya mockup): pesan + file yang diubah. */
 export function toast(msg: string, file?: string, action?: ToastMsg["action"]) {
@@ -12,27 +14,73 @@ export function toast(msg: string, file?: string, action?: ToastMsg["action"]) {
 }
 
 export function Toaster() {
-  const [t, setT] = useState<ToastMsg | null>(null);
+  const [t, setT] = useState<Shown | null>(null);
+  const [leaving, setLeaving] = useState(false);
+  const [paused, setPaused] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const outTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const seq = useRef(0);
+  const end = useRef(0); // kapan toast mulai keluar (ms epoch)
+  const left = useRef(0); // sisa waktu pas lagi di-hover
+
+  // geser keluar dulu, baru dilepas
+  const hide = () => {
+    clearTimeout(timer.current);
+    setLeaving(true);
+    outTimer.current = setTimeout(() => {
+      setT(null);
+      setLeaving(false);
+      setPaused(false);
+    }, OUT_MS);
+  };
+  const schedule = (ms: number) => {
+    clearTimeout(timer.current);
+    end.current = Date.now() + ms;
+    timer.current = setTimeout(hide, ms);
+  };
 
   useEffect(() => {
     const on = (e: Event) => {
       const d = (e as CustomEvent<ToastMsg>).detail;
-      clearTimeout(timer.current);
-      setT(d);
-      timer.current = setTimeout(() => setT(null), d.action ? 5200 : 2800);
+      const ms = d.action ? 5200 : 2800;
+      clearTimeout(outTimer.current);
+      setT({ ...d, id: ++seq.current, ms });
+      setLeaving(false);
+      setPaused(false);
+      schedule(ms);
     };
     window.addEventListener(EVT, on);
     return () => {
       window.removeEventListener(EVT, on);
       clearTimeout(timer.current);
+      clearTimeout(outTimer.current);
     };
+    // hide/schedule cuma nyentuh ref & setter (stabil)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
-    <div className="toast" role="status" aria-live="polite" hidden={!t}>
+    <div
+      className={"toast" + (leaving ? " leaving" : "") + (paused ? " paused" : "")}
+      role="status"
+      aria-live="polite"
+      hidden={!t}
+      // hover = waktu berhenti, biar sempat klik Urungkan
+      onMouseEnter={() => {
+        if (!t || leaving) return;
+        clearTimeout(timer.current);
+        left.current = Math.max(800, end.current - Date.now());
+        setPaused(true);
+      }}
+      onMouseLeave={() => {
+        if (!t || leaving || !paused) return;
+        setPaused(false);
+        schedule(left.current);
+      }}
+    >
       {t ? (
-        <>
+        // di-key per toast: toast baru pas yang lama masih tampil → isinya "nendang" sedikit
+        <span className="toast-body" key={t.id}>
           <span>
             {t.msg}
             {t.file ? <span className="mono"> → {t.file}</span> : null}
@@ -42,15 +90,15 @@ export function Toaster() {
               className="btn sm"
               type="button"
               onClick={() => {
-                clearTimeout(timer.current);
-                setT(null);
+                hide();
                 t.action!.fn();
               }}
             >
               {t.action.label}
             </button>
           ) : null}
-        </>
+          <i className="toast-bar" aria-hidden="true" style={{ animationDuration: t.ms + "ms" }} />
+        </span>
       ) : null}
     </div>
   );

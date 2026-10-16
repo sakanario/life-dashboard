@@ -71,8 +71,8 @@ async function Journal() {
             ))}
           </div>
           <div className="heat">
-            {d.cells.map((c) => (
-              <i key={c.date} data-l={c.level} title={`${c.date} · ${c.level ? "jurnal ada" : "kosong"}`} className={c.date === d.today ? "today" : undefined} />
+            {d.cells.map((c, i) => (
+              <i key={c.date} style={{ "--w": Math.floor(i / 7) } as React.CSSProperties} data-l={c.level} title={`${c.date} · ${c.level ? "jurnal ada" : "kosong"}`} className={c.date === d.today ? "today" : undefined} />
             ))}
           </div>
         </div>
@@ -98,9 +98,10 @@ async function Journal() {
               <div className="habit-strip">
                 {d.strip.map((h) => [
                   <span key={h.id}>{h.label.split(" ").slice(0, 3).join(" ")}</span>,
-                  ...h.days.map((x) => (
+                  ...h.days.map((x, di) => (
                     <i
                       key={h.id + x.date}
+                      style={{ "--d": di } as React.CSSProperties}
                       className={x.state ?? undefined}
                       title={`${x.date === d.today ? "hari ini" : x.date} · ${x.state === "done" ? "selesai" : x.state === "missed" ? "terlewat" : "kosong"}`}
                     />
@@ -134,7 +135,7 @@ function summaryText(md: string) {
 
 export default function Page() {
   return (
-    <div className="view">
+    <div className="view jpage">
       <Suspense fallback={<Loading />}>
         <Journal />
       </Suspense>
