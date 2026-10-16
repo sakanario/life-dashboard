@@ -484,6 +484,7 @@ function Drawer({
               <QuestList
                 quests={p.quests}
                 mainFile={p.isUncat ? undefined : p.file}
+                reorder={!arc}
                 idPrefix="dtk-"
                 isDone={isDone}
                 onToggle={toggle}

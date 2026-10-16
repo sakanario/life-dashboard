@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useRef, useState, useTransition } from "react";
+import { useCallback, useRef, useState, useTransition, type ReactNode } from "react";
 import { focusFirst } from "./habits";
 import { api, type ToggleResult } from "@/lib/client-api";
 import { toast, toastInfo, toastWarn, toastError } from "./toast";
@@ -103,6 +103,8 @@ export function QuestItem<T extends QuestRow>({
   readOnlyTitle,
   idPrefix,
   project,
+  grip,
+  lineCls = "",
 }: {
   q: T;
   done?: boolean;
@@ -111,10 +113,13 @@ export function QuestItem<T extends QuestRow>({
   readOnlyTitle?: string;
   idPrefix?: string;
   project?: { title: string; type: string | null; isArchived: boolean } | null;
+  grip?: ReactNode; // pegangan drag & drop (drawer proyek)
+  lineCls?: string; // garis posisi jatuh pas drag
 }) {
   const enter = useJustAdded(q.id);
   return (
-    <li className={"task" + (done ? " done" : "") + (enter ? " enter" : "")} style={q.depth ? { paddingLeft: q.depth * 18 } : undefined}>
+    <li className={"task" + (done ? " done" : "") + (enter ? " enter" : "") + lineCls} data-qid={q.id} style={q.depth ? { paddingLeft: q.depth * 18 } : undefined}>
+      {grip}
       <button
         className="check"
         type="button"

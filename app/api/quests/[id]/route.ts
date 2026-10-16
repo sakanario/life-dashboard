@@ -1,9 +1,10 @@
 import { asStr, handleWrite, readJsonBody } from "@/lib/api";
-import { deleteQuest, editQuest, moveQuest, toggleQuest, WriteError } from "@/lib/vault/writer";
+import { deleteQuest, editQuest, moveQuest, moveQuestTo, toggleQuest, WriteError } from "@/lib/vault/writer";
 
 /**
  * Ubah quest. `text` = teks quest sekarang (buat validasi baris). Salah satu dari:
  * { text, done } centang / batal (sekalian catat ke jurnal) · { text, newText } edit teks · { text, move: "up" | "down" } ubah urutan
+ * · { text, target, targetText, place: "before" | "after" } drag & drop ke sebelum / sesudah quest sejajar
  */
 export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }> }) {
   return handleWrite(async () => {
@@ -16,7 +17,10 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     const newText = asStr(b.newText);
     if (newText !== undefined) return editQuest(qid, { text, newText });
     if (b.move === "up" || b.move === "down") return moveQuest(qid, { text, dir: b.move });
-    throw new WriteError(400, "Perlu done, newText, atau move");
+    const target = asStr(b.target), targetText = asStr(b.targetText);
+    if (target && targetText && (b.place === "before" || b.place === "after"))
+      return moveQuestTo(qid, { text, target: decodeURIComponent(target), targetText, place: b.place });
+    throw new WriteError(400, "Perlu done, newText, move, atau target");
   });
 }
 

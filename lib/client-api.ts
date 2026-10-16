@@ -62,6 +62,8 @@ export const api = {
     send<QuestRef>("POST", "/api/quests", { text, ...target }),
   editQuest: (id: string, text: string, newText: string) => send<QuestRef>("PATCH", qurl(id), { text, newText }),
   moveQuest: (id: string, text: string, move: "up" | "down") => send<QuestRef>("PATCH", qurl(id), { text, move }),
+  moveQuestTo: (id: string, text: string, target: string, targetText: string, place: "before" | "after") =>
+    send<QuestRef>("PATCH", qurl(id), { text, target, targetText, place }),
   deleteQuest: (id: string, text: string) => send<{ file: string; line: number; removed: number }>("DELETE", qurl(id), { text }),
   setProjectStatus: (slug: string, status: string) => send<{ file: string; status: string }>("PATCH", `/api/projects/${encodeURIComponent(slug)}`, { status }),
   setProjectDesc: (slug: string, desc: string, base: string) =>

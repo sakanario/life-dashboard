@@ -496,6 +496,37 @@ export async function moveQuest(id: string, input: { text: string; dir: "up" | "
   });
 }
 
+/** Awal semua blok quest sejajar (indentasi & induk sama) di grup yang sama dengan baris `i`. */
+function siblingStarts(lines: string[], i: number) {
+  let first = i;
+  for (let k = prevSibling(lines, first); k >= 0; k = prevSibling(lines, first)) first = k;
+  const out: number[] = [];
+  for (let k = first; k < lines.length && isQuestLine(lines[k]) && indentOf(lines[k]) === indentOf(lines[i]); k = blockEnd(lines, k)) out.push(k);
+  return out;
+}
+
+/**
+ * Drag & drop: pindahin quest (beserta subquest-nya) ke sebelum / sesudah quest lain yang sejajar
+ * (file, indentasi & induk sama). `target` = ID quest tujuan, `targetText` buat validasi barisnya.
+ */
+export async function moveQuestTo(id: string, input: { text: string; target: string; targetText: string; place: "before" | "after" }) {
+  const cut = input.target.lastIndexOf(":");
+  const tFile = input.target.slice(0, cut), tLine = Number(input.target.slice(cut + 1));
+  if (cut < 1 || !Number.isInteger(tLine) || tLine < 1) throw new WriteError(400, "ID quest tujuan tidak valid");
+  return withQuest(id, input.text, (d, i) => {
+    if (resolveMd(tFile).rel !== d.rel) throw new WriteError(400, "Quest cuma bisa dipindah di file yang sama");
+    const L = d.lines;
+    let t = locateQuest(d, d.rel, tLine, input.targetText);
+    if (t === i) return { id: `${d.rel}:${i + 1}`, file: d.rel, line: i + 1 };
+    if (!siblingStarts(L, i).includes(t)) throw new WriteError(409, "Quest cuma bisa dipindah di antara quest yang sejajar");
+    const block = L.splice(i, blockEnd(L, i) - i);
+    if (t > i) t -= block.length;
+    const at = input.place === "before" ? t : blockEnd(L, t);
+    L.splice(at, 0, ...block);
+    return { id: `${d.rel}:${at + 1}`, file: d.rel, line: at + 1 };
+  });
+}
+
 /** Hapus quest beserta subquest-nya. Baris di jurnal "Quest selesai" tidak disentuh. */
 export async function deleteQuest(id: string, input: { text: string }) {
   return withQuest(id, input.text, (d, i) => {

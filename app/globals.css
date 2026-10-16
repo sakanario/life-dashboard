@@ -607,7 +607,24 @@ a.btn{text-decoration:none;color:inherit}
   .task.has-act{grid-template-columns:22px minmax(0,1fr)}
   .task.has-act .t-act{grid-column:2;justify-content:flex-start}
   .task.has-act .t-edit{flex-wrap:wrap}
+  .tasks.can-drag > .task.has-act{grid-template-columns:18px 22px minmax(0,1fr)}
+  .tasks.can-drag > .task.has-act .t-act{grid-column:3}
 }
+/* drag & drop urutan quest di drawer proyek: pegangan ⋮⋮ di kiri, baris yang diangkat ngikut pointer, garis aksen = posisi jatuh */
+.tasks.can-drag > .task{position:relative;grid-template-columns:18px 22px minmax(0,1fr)}
+.tasks.can-drag > .task.has-act{grid-template-columns:18px 22px minmax(0,1fr) auto}
+.tasks.can-drag > .task.has-act .t-edit{grid-column:3 / -1}
+.q-grip{align-self:start;height:22px;display:grid;place-items:center;margin-left:-4px;color:var(--muted);opacity:.4;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;border-radius:5px;transition:opacity .15s,background .15s}
+.task:hover > .q-grip{opacity:.9}
+.q-grip:hover{background:var(--sunk)}
+@media (hover:none){.q-grip{opacity:.65;width:26px;margin-left:-8px}}
+.tasks.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
+.tasks.is-dragging .q-grip{cursor:grabbing}
+.task.dragging{z-index:3;background:var(--glass-strong);border-radius:10px;box-shadow:0 12px 30px rgba(20,22,48,.2),0 0 0 1px var(--line);will-change:transform}
+.task.dragging > .q-grip{opacity:1;color:var(--accent-text)}
+.task.drop-before::before,.task.drop-after::after{content:"";position:absolute;left:0;right:0;height:3px;border-radius:3px;background:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);pointer-events:none;animation:ld-fade .15s ease}
+.task.drop-before::before{top:-2px}
+.task.drop-after::after{bottom:-2px}
 .goal-off{opacity:.72}
 /* goals: tombol edit / hapus */
 .goal-acts{display:inline-flex;gap:2px;flex:none}
