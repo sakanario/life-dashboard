@@ -17,7 +17,7 @@ async function Journal() {
   const rows: TimelineRow[] = d.rows.map((r) =>
     r.kind === "gap"
       ? r
-      : { kind: "day", date: r.entry.date, file: r.entry.file, highlight: r.entry.highlight, summary: summaryText(r.entry.summary), tags: r.entry.tags },
+      : { kind: "day", date: r.entry.date, file: r.entry.file, highlight: r.entry.highlight, summary: summaryText(r.entry.summary), tags: r.entry.tags, questsDone: r.entry.questsDone },
   );
 
   return (

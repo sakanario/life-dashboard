@@ -16,12 +16,13 @@ const weekday = (s: string) => {
 };
 
 export type TimelineRow =
-  | { kind: "day"; date: string; file: string; highlight: string; summary: string; tags: string[] }
+  | { kind: "day"; date: string; file: string; highlight: string; summary: string; tags: string[]; questsDone: string[] }
   | { kind: "gap"; days: number; from: string; to: string; questsDone: number };
 
 export function Timeline({ rows, tags, today, onEdit }: { rows: TimelineRow[]; tags: string[]; today: string; onEdit?: (date: string) => void }) {
   const [tag, setTag] = useState<string | null>(null);
   const [open, setOpen] = useState<Record<string, boolean>>({});
+  const [qOpen, setQOpen] = useState<Record<string, boolean>>({});
   const shown = tag ? rows.filter((r) => r.kind === "day" && r.tags.includes(tag)) : rows;
 
   return (
@@ -88,6 +89,26 @@ export function Timeline({ rows, tags, today, onEdit }: { rows: TimelineRow[]; t
                     Ringkasan kosong.
                   </span>
                 )}
+                {r.questsDone.length ? (
+                  <>
+                    <button
+                      type="button"
+                      className="more day-qtog"
+                      aria-expanded={!!qOpen[r.date]}
+                      aria-controls={"dq-" + r.date}
+                      onClick={() => setQOpen({ ...qOpen, [r.date]: !qOpen[r.date] })}
+                    >
+                      ✓ {r.questsDone.length} quest selesai
+                    </button>
+                    {qOpen[r.date] ? (
+                      <ul className="jdone day-quests" id={"dq-" + r.date}>
+                        {r.questsDone.map((q, k) => (
+                          <li key={k}>{q}</li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </>
+                ) : null}
               </div>
             </div>
           ),

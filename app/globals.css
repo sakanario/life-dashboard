@@ -700,6 +700,9 @@ a.btn{text-decoration:none;color:inherit}
 /* timeline: hari-hari muncul berurutan (dibuka & tiap ganti filter tag); ringkasan dibuka halus */
 .timeline > .day{animation:ld-rise .42s cubic-bezier(.2,.7,.3,1) backwards;animation-delay:calc(var(--i, 0) * 40ms)}
 .day-sum.open{animation:tswap .28s cubic-bezier(.2,.7,.3,1)}
+/* timeline: daftar "Quest selesai" per hari, dibuka lewat tombol */
+.day-qtog{align-self:flex-start;color:var(--good)}
+.day-quests{margin:2px 0 0;padding-left:20px;font-size:.86rem;animation:tswap .28s cubic-bezier(.2,.7,.3,1)}
 /* habit (jurnal & Hari ini): bulatan centang mantul pas ditandai */
 .habit .hb{transition:background .2s ease,border-color .2s ease}
 .habit.done .hb{animation:ld-check .34s cubic-bezier(.3,1.6,.5,1)}
