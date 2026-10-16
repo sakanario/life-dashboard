@@ -113,8 +113,7 @@ export function TodayView({ data, greeting, hour, journalOpen: jOpen0 }: { data:
       {data.gap ? (
         <div className="alert" role="note">
           <div>
-            <b>Jurnal bolong {data.gap.days} hari.</b> Terakhir nulis {longDate(data.gap.last)}
-            {data.gap.hasToday ? ", terus lanjut lagi hari ini." : "."}
+            <b>Jurnal bolong {data.gap.days} hari.</b> Terakhir nulis {longDate(data.gap.last)}.
           </div>
           <Link className="btn sm" href="/journal">
             Lihat heatmap

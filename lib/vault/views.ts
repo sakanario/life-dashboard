@@ -134,7 +134,8 @@ export async function getToday() {
     weekday: fromIso(today).getDay(),
     journal: tj ? { highlight: tj.highlight, summary: tj.summary, words: tj.words, file: tj.file, questsDone: tj.questsDone, savedAt: savedLabel(tj.mtime, today) } : null,
     journalFile: journalPath(today),
-    gap: stats.gapBeforeToday && stats.gapBeforeToday >= 2 ? { days: stats.gapBeforeToday, last: stats.lastBeforeToday!, hasToday: stats.hasToday } : null,
+    // pengingat bolong cuma selama hari ini belum nulis; begitu jurnal hari ini ada, ilang
+    gap: !stats.hasToday && stats.gapBeforeToday && stats.gapBeforeToday >= 2 ? { days: stats.gapBeforeToday, last: stats.lastBeforeToday! } : null,
     habits: v.habits.map((h) => ({ ...h, state: (tj?.habits[h.id] ?? null) as HabitState | null, base: habitBase(byDate, h.id, today) })),
     open: live.filter((q) => !q.done).sort(byFile),
     doneToday: live.filter((q) => q.done && q.doneAt === today).sort(byFile),
