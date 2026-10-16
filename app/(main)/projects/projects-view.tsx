@@ -11,6 +11,7 @@ import { useFresh, useLeaving } from "@/components/motion";
 import { SlideSeg } from "@/components/slide-seg";
 import { toast, toastError } from "@/components/toast";
 import { Bar } from "@/components/ui";
+import { ProjectNote } from "./project-note";
 import { api } from "@/lib/client-api";
 import type { getProjectsPage } from "@/lib/vault/views";
 
@@ -228,7 +229,7 @@ export function ProjectsView({
               )}
               <h2>{p.title}</h2>
               {p.desc ? (
-                <p className="muted" style={{ margin: 0, fontSize: ".86rem" }}>
+                <p className="muted proj-desc" style={{ margin: 0, fontSize: ".86rem" }}>
                   {p.desc}
                 </p>
               ) : null}
@@ -383,7 +384,8 @@ function Drawer({
   const fresh = useFresh();
   useEffect(() => {
     if (leaving) return;
-    const k = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    // root React = document, jadi stopPropagation editor (catatan / quest) ga nahan listener ini → cek defaultPrevented
+    const k = (e: KeyboardEvent) => e.key === "Escape" && !e.defaultPrevented && onClose();
     document.addEventListener("keydown", k);
     return () => document.removeEventListener("keydown", k);
   }, [onClose, leaving]);
@@ -453,7 +455,7 @@ function Drawer({
             <dd className="mono">{p.updated ?? "—"}</dd>
           </dl>
         )}
-        {p.desc ? <p style={{ margin: 0 }}>{p.desc}</p> : null}
+        {p.isUncat ? <p style={{ margin: 0 }}>{p.desc}</p> : <ProjectNote slug={p.slug} raw={p.descRaw} readOnly={arc} />}
         <div className="tabs" role="tablist">
           <button type="button" role="tab" aria-selected={tab === "tasks"} onClick={() => setTab("tasks")}>
             Quest ({p.stats.open} terbuka)

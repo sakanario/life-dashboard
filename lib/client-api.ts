@@ -64,6 +64,8 @@ export const api = {
   moveQuest: (id: string, text: string, move: "up" | "down") => send<QuestRef>("PATCH", qurl(id), { text, move }),
   deleteQuest: (id: string, text: string) => send<{ file: string; line: number; removed: number }>("DELETE", qurl(id), { text }),
   setProjectStatus: (slug: string, status: string) => send<{ file: string; status: string }>("PATCH", `/api/projects/${encodeURIComponent(slug)}`, { status }),
+  setProjectDesc: (slug: string, desc: string, base: string) =>
+    send<{ file: string; changed: boolean }>("PATCH", `/api/projects/${encodeURIComponent(slug)}`, { desc, base }),
   createProject: (body: { title: string; type: string; status?: string; goal?: string | null; desc?: string }) =>
     send<{ slug: string; file: string }>("POST", "/api/projects", body),
   archiveProject: (slug: string) =>

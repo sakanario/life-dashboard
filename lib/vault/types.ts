@@ -29,6 +29,7 @@ export type Project = {
   archived: string | null; // tanggal arsip
   isArchived: boolean;
   desc: string;
+  descRaw: string; // isi mentah area deskripsi README (sebelum "## Quest"), buat diedit
   dir: string; // Projects/<slug> atau Archive/Projects/<slug>
   file: string; // .../README.md
   files: string[]; // relatif ke dir

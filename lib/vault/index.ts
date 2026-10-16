@@ -170,6 +170,7 @@ function build(): VaultIndex {
       archived: str(d.fm.archived),
       isArchived: status === "archived",
       desc: plain(d.body.split(/^##\s+Quest\b/im)[0]),
+      descRaw: d.body.split(/^##\s+Quest\b/im)[0].trim(),
       dir,
       file: d.path,
       files: files.filter((f) => f.path.startsWith(dir + "/")).map((f) => f.path.slice(dir.length + 1))

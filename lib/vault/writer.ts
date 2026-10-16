@@ -528,6 +528,33 @@ export async function setProjectStatus(slug: string, status: string) {
   });
 }
 
+/**
+ * Tulis area deskripsi README proyek (sesudah frontmatter sampai "## Quest"), tempat catatan / proses berpikir.
+ * `base` = isi yang dilihat user waktu mulai ngetik; kalau file udah beda (diubah Claude / Obsidian) → 409.
+ */
+export async function setProjectDesc(slug: string, desc: string, base: string) {
+  const p = findProject(await getVault(), slug);
+  if (p.isArchived) throw new WriteError(403, "Proyek diarsip (read-only)");
+  const next = desc.replace(/\r\n/g, "\n").trim();
+  if (next.length > 20000) throw new WriteError(400, "Catatan kepanjangan");
+  return withLocks([p.file], async () => {
+    const d = await readDoc(p.file);
+    if (!d.exists) throw new WriteError(404, "README proyek tidak ketemu");
+    const start = fmEnd(d.lines) + 1;
+    let end = d.lines.findIndex((l, i) => i >= start && /^##\s+Quest\b/i.test(l));
+    const hasRest = end >= 0;
+    if (!hasRest) end = d.lines.length;
+    const cur = d.lines.slice(start, end).join("\n").trim();
+    if (cur !== base.replace(/\r\n/g, "\n").trim()) throw new WriteError(409, "README proyek berubah dari luar", { desc: cur });
+    if (cur === next) return { file: p.file, changed: false };
+    const body = next ? next.split("\n") : [];
+    d.lines.splice(start, end - start, ...body, ...(body.length || !hasRest ? [""] : []));
+    setFmField(d, "updated", todayIso());
+    await writeDoc(d);
+    return { file: p.file, changed: true };
+  });
+}
+
 const slugify = (s: string) =>
   s.normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
 

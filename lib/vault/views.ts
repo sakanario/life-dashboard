@@ -209,6 +209,7 @@ export async function getProjectsPage() {
     archived: null,
     isArchived: false,
     desc: "Quest lepas yang belum masuk proyek mana pun.",
+    descRaw: "",
     dir: "",
     file: "Uncategorize.md",
     files: [],
