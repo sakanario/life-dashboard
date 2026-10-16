@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { NavIcon } from "@/components/icons";
 import { focusFirst } from "@/components/habits";
 import { AddQuestForm, useQuestToggle } from "@/components/quest";
 import { QuestList } from "@/components/quest-manage";
+import { SlideSeg } from "@/components/slide-seg";
 import { toast } from "@/components/toast";
 import { Bar } from "@/components/ui";
 import { api } from "@/lib/client-api";
@@ -83,8 +84,21 @@ export function ProjectsView({
   const list = projects.filter((p) => !p.isArchived && (f === "all" || (!p.isUncat && p.type === f)));
   const opened = projects.find((p) => p.slug === openSlug) ?? null;
 
+  // drawer yang lagi ditutup tetap dirender sebentar biar animasi keluarnya jalan (data disimpan, proyeknya bisa udah ilang)
+  const [leaving, setLeaving] = useState<P | null>(null);
+  const leaveTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => () => clearTimeout(leaveTimer.current), []);
+
   const setFilter = (x: Filter) => { setF(x); syncUrl(x, openSlug); };
-  const open = (s: string | null) => { setOpenSlug(s); syncUrl(f, s); };
+  const open = (s: string | null) => {
+    clearTimeout(leaveTimer.current);
+    if (!s && opened) {
+      setLeaving(opened);
+      leaveTimer.current = setTimeout(() => setLeaving(null), 260);
+    } else setLeaving(null);
+    setOpenSlug(s);
+    syncUrl(f, s);
+  };
 
   const restore = (p: P) =>
     run(
@@ -104,6 +118,18 @@ export function ProjectsView({
       },
     );
 
+  const remove = (p: P) =>
+    run(
+      () => api.deleteProject(p.slug),
+      (r) => {
+        open(null);
+        toast("Proyek dihapus", `${r.from} → ${r.to}`, {
+          label: "Urungkan",
+          fn: () => void run(() => api.undeleteProject(p.slug, r.to, r.from), (x) => toast("Hapus dibatalin", `${x.from} → ${x.to}`)),
+        });
+      },
+    );
+
   return (
     <>
       <div className="head">
@@ -112,20 +138,17 @@ export function ProjectsView({
           <h1>{f === "archived" ? "Proyek diarsip" : "Proyek"}</h1>
         </div>
         <div className="toolbar">
-          <div className="seg" role="group" aria-label="Filter proyek">
-            {(
-              [
-                ["all", "Semua"],
-                ["personal", "Personal"],
-                ["work", "Work"],
-                ["archived", `Arsip (${arch.length})`],
-              ] as [Filter, string][]
-            ).map(([k, l]) => (
-              <button key={k} type="button" aria-pressed={f === k} onClick={() => setFilter(k)}>
-                {l}
-              </button>
-            ))}
-          </div>
+          <SlideSeg
+            label="Filter proyek"
+            value={f}
+            onChange={setFilter}
+            options={[
+              ["all", "Semua"],
+              ["personal", "Personal"],
+              ["work", "Work"],
+              ["archived", `Arsip (${arch.length})`],
+            ]}
+          />
           <button className="btn" type="button" id="newproj-btn" aria-expanded={creating} aria-controls="newproj" onClick={() => setCreating(!creating)}>
             + Proyek
           </button>
@@ -149,11 +172,11 @@ export function ProjectsView({
       ) : null}
 
       {f === "archived" ? (
-        <section className="panel" aria-label="Daftar proyek diarsip">
+        <section className="panel proj-swap" key={f} aria-label="Daftar proyek diarsip">
           {arch.length ? (
             <ul className="arc-list">
-              {arch.map((p) => (
-                <li key={p.slug}>
+              {arch.map((p, i) => (
+                <li key={p.slug} style={{ "--i": i } as React.CSSProperties}>
                   <div className="arc-main">
                     <button type="button" className="arc-title" onClick={() => open(p.slug)}>
                       {p.title}
@@ -180,10 +203,12 @@ export function ProjectsView({
           )}
         </section>
       ) : (
-        <div className="proj-grid">
-          {list.map((p) => (
+        // key = filter: ganti tab → grid dipasang ulang, kartu muncul berurutan lagi
+        <div className="proj-grid" key={f}>
+          {list.map((p, i) => (
             <article
               key={p.slug}
+              style={{ "--i": Math.min(i, 12) } as React.CSSProperties}
               className="panel proj"
               tabIndex={0}
               role="button"
@@ -219,11 +244,15 @@ export function ProjectsView({
               )}
             </article>
           ))}
-          {list.length ? null : <p className="muted">Ga ada proyek di filter ini.</p>}
+          {list.length ? null : <p className="muted proj-swap">Ga ada proyek di filter ini.</p>}
         </div>
       )}
 
-      {opened ? <Drawer key={opened.slug} p={opened} onClose={() => open(null)} onArchive={() => archive(opened)} onRestore={() => restore(opened)} /> : null}
+      {opened ? (
+        <Drawer key={opened.slug} p={opened} onClose={() => open(null)} onArchive={() => archive(opened)} onRestore={() => restore(opened)} onDelete={() => remove(opened)} />
+      ) : leaving ? (
+        <Drawer key={leaving.slug} p={leaving} leaving onClose={() => {}} onArchive={() => {}} onRestore={() => {}} onDelete={() => {}} />
+      ) : null}
     </>
   );
 }
@@ -324,24 +353,45 @@ function NewProject({
   );
 }
 
-function Drawer({ p, onClose, onArchive, onRestore }: { p: P; onClose: () => void; onArchive: () => void; onRestore: () => void }) {
+function Drawer({
+  p,
+  leaving = false,
+  onClose,
+  onArchive,
+  onRestore,
+  onDelete,
+}: {
+  p: P;
+  leaving?: boolean;
+  onClose: () => void;
+  onArchive: () => void;
+  onRestore: () => void;
+  onDelete: () => void;
+}) {
   const [tab, setTab] = useState<"tasks" | "notes">("tasks");
   const [manage, setManage] = useState(false);
-  const [askArchive, setAskArchive] = useState(false);
+  const [ask, setAsk] = useState<"archive" | "delete" | null>(null);
   const { isDone, toggle } = useQuestToggle();
   const { busy, run } = useWrite();
   const [status, setStatus] = useState<string | null>(null); // optimistis sampai data server baru datang
+  // isi drawer muncul berurutan cuma pas baru dibuka (bukan tiap ganti tab di dalamnya)
+  const [fresh, setFresh] = useState(true);
   useEffect(() => {
+    const t = setTimeout(() => setFresh(false), 700);
+    return () => clearTimeout(t);
+  }, []);
+  useEffect(() => {
+    if (leaving) return;
     const k = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     document.addEventListener("keydown", k);
     return () => document.removeEventListener("keydown", k);
-  }, [onClose]);
+  }, [onClose, leaving]);
 
   const arc = p.isArchived;
   const shownStatus = status ?? p.status;
   return (
-    <div className="scrim" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <aside className="drawer" role="dialog" aria-modal="true" aria-label={p.title + (arc ? " (diarsip)" : "")}>
+    <div className={"scrim proj-scrim" + (leaving ? " leaving" : "")} inert={leaving} onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <aside className={"drawer" + (fresh ? " fresh" : "")} role="dialog" aria-modal="true" aria-label={p.title + (arc ? " (diarsip)" : "")}>
         <div className="drawer-h">
           <div>
             <div className="eyebrow">{p.file}</div>
@@ -458,37 +508,61 @@ function Drawer({ p, onClose, onArchive, onRestore }: { p: P; onClose: () => voi
             ))}
           </ul>
         )}
-        {arc || p.isUncat ? null : (
+        {p.isUncat ? null : (
           <div className="drawer-foot">
-            <button
-              className="btn sm danger"
-              type="button"
-              id="darchive"
-              aria-expanded={askArchive}
-              aria-controls="darcbox"
-              onClick={() => {
-                setAskArchive(true);
-                focusFirst(["darcyes"]);
-              }}
-            >
-              Arsipkan
-            </button>
-            {askArchive ? (
-              <div className="confirm" id="darcbox" role="group" aria-labelledby="darcmsg">
-                <p id="darcmsg">
-                  Arsipkan <b>{p.title}</b>? Folder dipindah ke <span className="mono">Archive/Projects/{p.slug}/</span>.{" "}
-                  {p.stats.open ? `${p.stats.open} quest terbuka ikut diarsip dan ga muncul di Hari ini lagi.` : "Ga ada quest terbuka."}
-                </p>
+            <div className="row">
+              {arc ? null : (
+                <button
+                  className="btn sm danger"
+                  type="button"
+                  id="darchive"
+                  aria-expanded={ask === "archive"}
+                  aria-controls="dconfirm"
+                  onClick={() => {
+                    setAsk("archive");
+                    focusFirst(["dyes"]);
+                  }}
+                >
+                  Arsipkan
+                </button>
+              )}
+              <button
+                className="btn sm danger"
+                type="button"
+                id="ddelete"
+                aria-expanded={ask === "delete"}
+                aria-controls="dconfirm"
+                onClick={() => {
+                  setAsk("delete");
+                  focusFirst(["dyes"]);
+                }}
+              >
+                Hapus
+              </button>
+            </div>
+            {ask ? (
+              <div className="confirm goal-pop" key={ask} id="dconfirm" role="group" aria-labelledby="dconfmsg">
+                {ask === "archive" ? (
+                  <p id="dconfmsg">
+                    Arsipkan <b>{p.title}</b>? Folder dipindah ke <span className="mono">Archive/Projects/{p.slug}/</span>.{" "}
+                    {p.stats.open ? `${p.stats.open} quest terbuka ikut diarsip dan ga muncul di Hari ini lagi.` : "Ga ada quest terbuka."}
+                  </p>
+                ) : (
+                  <p id="dconfmsg">
+                    Hapus <b>{p.title}</b>? Proyek ilang dari daftar (termasuk arsip) beserta {p.stats.total} quest dan {p.files.length} catatannya. Foldernya
+                    ga dihapus permanen, cuma dipindah ke <span className="mono">Archive/Deleted/Projects/</span>.
+                  </p>
+                )}
                 <div className="row">
-                  <button className="btn sm danger" type="button" id="darcyes" onClick={onArchive}>
-                    Ya, arsipkan
+                  <button className="btn sm danger" type="button" id="dyes" onClick={ask === "archive" ? onArchive : onDelete}>
+                    {ask === "archive" ? "Ya, arsipkan" : "Ya, hapus"}
                   </button>
                   <button
                     className="btn sm"
                     type="button"
                     onClick={() => {
-                      setAskArchive(false);
-                      focusFirst(["darchive"]);
+                      focusFirst([ask === "archive" ? "darchive" : "ddelete"]);
+                      setAsk(null);
                     }}
                   >
                     Batal

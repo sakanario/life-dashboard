@@ -1,5 +1,5 @@
 import { asStr, handleWrite, readJsonBody } from "@/lib/api";
-import { setProjectStatus, WriteError } from "@/lib/vault/writer";
+import { deleteProject, setProjectStatus, WriteError } from "@/lib/vault/writer";
 import { getProjects } from "@/lib/vault/views";
 
 export async function GET(_req: Request, ctx: { params: Promise<{ slug: string }> }) {
@@ -16,5 +16,14 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ slug: string 
     const status = asStr(b.status);
     if (!status) throw new WriteError(400, "Perlu status");
     return setProjectStatus(slug, status);
+  });
+}
+
+/** Hapus proyek: folder dipindah ke Archive/Deleted/Projects/ (bisa diurungkan lewat /undelete). Body: {} */
+export async function DELETE(req: Request, ctx: { params: Promise<{ slug: string }> }) {
+  return handleWrite(async () => {
+    const { slug } = await ctx.params;
+    await readJsonBody(req);
+    return deleteProject(slug);
   });
 }

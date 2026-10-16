@@ -638,6 +638,29 @@ export async function restoreProject(slug: string, status = "paused") {
   });
 }
 
+/** Hapus proyek: folder dipindah ke Archive/Deleted/Projects/ (bisa diurungkan), ga dihapus permanen. */
+export async function deleteProject(slug: string) {
+  const p = findProject(await getVault(), slug);
+  let to = `Archive/Deleted/Projects/${slug}`;
+  for (let n = 2; await exists(safeResolve(to)!.abs); n++) to = `Archive/Deleted/Projects/${slug}-${n}`;
+  return withLocks([p.file, `${to}/README.md`], async () => {
+    await moveDir(p.dir, to);
+    return { slug, from: `${p.dir}/`, to: `${to}/` };
+  });
+}
+
+/** Urungkan hapus: folder di Archive/Deleted/Projects/ balik ke tempat asalnya (Projects/ atau Archive/Projects/). */
+export async function undeleteProject(slug: string, input: { from: string; to: string }) {
+  const from = input.from.replace(/\/+$/, ""), to = input.to.replace(/\/+$/, "");
+  if (!/^Archive\/Deleted\/Projects\/[^/\\]+$/.test(from)) throw new WriteError(400, "Path proyek terhapus tidak valid");
+  if (!/^[^/\\.][^/\\]*$/.test(slug) || (to !== `Projects/${slug}` && to !== `Archive/Projects/${slug}`)) throw new WriteError(400, "Tujuan pulihkan tidak valid");
+  return withLocks([`${from}/README.md`, `${to}/README.md`], async () => {
+    if (!(await exists(safeResolve(from)!.abs))) throw new WriteError(404, "Folder proyek terhapus tidak ketemu");
+    await moveDir(from, to);
+    return { slug, from: `${from}/`, to: `${to}/` };
+  });
+}
+
 export async function setGoalStatus(slug: string, status: string) {
   if (!["active", "done", "dropped"].includes(status)) throw new WriteError(400, `Status tidak valid: ${status}`);
   const g = (await getVault()).goals.find((x) => x.slug === slug);

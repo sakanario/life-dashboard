@@ -70,6 +70,9 @@ export const api = {
     send<{ slug: string; from: string; to: string; prevStatus: string }>("POST", `/api/projects/${encodeURIComponent(slug)}/archive`, {}),
   restoreProject: (slug: string, status?: string) =>
     send<{ slug: string; from: string; to: string; status: string }>("POST", `/api/projects/${encodeURIComponent(slug)}/restore`, { status }),
+  deleteProject: (slug: string) => send<{ slug: string; from: string; to: string }>("DELETE", `/api/projects/${encodeURIComponent(slug)}`, {}),
+  undeleteProject: (slug: string, from: string, to: string) =>
+    send<{ slug: string; from: string; to: string }>("POST", `/api/projects/${encodeURIComponent(slug)}/undelete`, { from, to }),
   createGoal: (body: { title: string; horizon: string; target?: string | null; desc?: string }) =>
     send<{ slug: string; file: string }>("POST", "/api/goals", body),
   createIdea: (title: string, project?: string | null) => send<{ slug: string; file: string }>("POST", "/api/content", { title, project }),
