@@ -5,7 +5,7 @@ import { useState, useTransition } from "react";
 import { api } from "@/lib/client-api";
 import { focusFirst } from "./habits";
 import { QuestItem, useJustAdded, type QuestRow } from "./quest";
-import { toast } from "./toast";
+import { toast, toastError } from "./toast";
 
 /** Teks quest yang bisa diedit: isi baris asli (markdown & @tag tetap), tanpa checkbox & done:. */
 const editable = (q: QuestRow) =>
@@ -103,7 +103,7 @@ function ManagedRow<T extends QuestRow>({
       after(r);
       startTransition(() => router.refresh());
     } catch (e) {
-      toast((e as Error).message);
+      toastError((e as Error).message);
     } finally {
       setBusy(false);
     }

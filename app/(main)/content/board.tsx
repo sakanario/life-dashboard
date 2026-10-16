@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition, type ReactNode } from "react";
 import { focusFirst } from "@/components/habits";
 import { useEnter, useFresh, useLeaving } from "@/components/motion";
-import { toast } from "@/components/toast";
+import { toast, toastWarn, toastError } from "@/components/toast";
 import { ArcChip } from "@/components/ui";
 import { api } from "@/lib/client-api";
 import { PLATFORMS, PUBLISHED_STAGES, STAGES, stageLabel } from "@/lib/vault/content-format";
@@ -72,7 +72,7 @@ export function Board({
       const r = await api.updateContent(c.slug, { stage });
       toast(`Pindah ke ${stageLabel(stage)}`, `${r.file} · stage: ${stage}${r.changed.includes("published") ? ` · published: ${r.published}` : ""}`);
     } catch (e) {
-      toast((e as Error).message);
+      toastError((e as Error).message);
     } finally {
       startTransition(() => {
         router.refresh();
@@ -101,14 +101,14 @@ export function Board({
             toast("Hapus dibatalin", `${x.from} → ${x.to}`);
             markEnter(c.slug);
           } catch (e) {
-            toast((e as Error).message);
+            toastError((e as Error).message);
           } finally {
             startTransition(() => router.refresh());
           }
         },
       });
     } catch (e) {
-      toast((e as Error).message);
+      toastError((e as Error).message);
       startTransition(() => router.refresh());
     }
   }
@@ -286,7 +286,7 @@ function IdeaForm({ projects, onClose, onCreated }: { projects: ProjOpt[]; onClo
           setTitle("");
           startTransition(() => router.refresh());
         } catch (err) {
-          toast((err as Error).message);
+          toastError((err as Error).message);
         } finally {
           setBusy(false);
           focusFirst(["idea-in"]);
@@ -375,7 +375,7 @@ function ContentDrawer({
         setPlatform(null);
       });
     } catch (e) {
-      toast((e as Error).message);
+      toastError((e as Error).message);
       setPlatform(null);
     } finally {
       setBusy(false);
@@ -481,7 +481,7 @@ function ContentDrawer({
             onSubmit={(e) => {
               e.preventDefault();
               const v = num(stats.views), cm = num(stats.comments);
-              if ((v !== null && !Number.isFinite(v)) || (cm !== null && !Number.isFinite(cm))) return toast("Views & komen harus angka");
+              if ((v !== null && !Number.isFinite(v)) || (cm !== null && !Number.isFinite(cm))) return toastWarn("Views & komen harus angka");
               void save({ stats: { views: v, comments: cm, retention: stats.retention.trim() || null } }, "Stats disimpan");
             }}
           >

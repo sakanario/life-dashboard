@@ -2,16 +2,29 @@
 
 import { useEffect, useRef, useState } from "react";
 
-type ToastMsg = { msg: string; file?: string; action?: { label: string; fn: () => void } };
+type Kind = "ok" | "info" | "warn" | "error";
+type Action = { label: string; fn: () => void };
+type ToastMsg = { msg: string; file?: string; action?: Action; kind: Kind };
 type Shown = ToastMsg & { id: number; ms: number };
 
 const EVT = "ld-toast";
 const OUT_MS = 220; // lama animasi keluar
 
-/** Tampilkan toast (gaya mockup): pesan + file yang diubah. */
-export function toast(msg: string, file?: string, action?: ToastMsg["action"]) {
-  window.dispatchEvent(new CustomEvent<ToastMsg>(EVT, { detail: { msg, file, action } }));
-}
+// lama tampil per jenis; yang ada tombol aksi dikasih lebih lama biar sempat diklik
+const MS: Record<Kind, number> = { ok: 2600, info: 2600, warn: 4000, error: 4500 };
+const ACTION_MS = 5000;
+
+const send = (kind: Kind) => (msg: string, file?: string, action?: Action) =>
+  window.dispatchEvent(new CustomEvent<ToastMsg>(EVT, { detail: { msg, file, action, kind } }));
+
+/** Toast berhasil (hijau): pesan + file yang diubah. */
+export const toast = send("ok");
+/** Toast netral (navy): ga ada yang berubah, dibatalin, dsb. */
+export const toastInfo = send("info");
+/** Toast peringatan (oranye): input salah, file berubah dari luar. */
+export const toastWarn = send("warn");
+/** Toast gagal (merah). */
+export const toastError = send("error");
 
 export function Toaster() {
   const [t, setT] = useState<Shown | null>(null);
@@ -42,7 +55,7 @@ export function Toaster() {
   useEffect(() => {
     const on = (e: Event) => {
       const d = (e as CustomEvent<ToastMsg>).detail;
-      const ms = d.action ? 5200 : 2800;
+      const ms = d.action ? Math.max(ACTION_MS, MS[d.kind]) : MS[d.kind];
       clearTimeout(outTimer.current);
       setT({ ...d, id: ++seq.current, ms });
       setLeaving(false);
@@ -61,9 +74,9 @@ export function Toaster() {
 
   return (
     <div
-      className={"toast" + (leaving ? " leaving" : "") + (paused ? " paused" : "")}
-      role="status"
-      aria-live="polite"
+      className={"toast " + (t?.kind ?? "ok") + (leaving ? " leaving" : "") + (paused ? " paused" : "")}
+      role={t?.kind === "error" ? "alert" : "status"}
+      aria-live={t?.kind === "error" ? "assertive" : "polite"}
       hidden={!t}
       // hover = waktu berhenti, biar sempat klik Urungkan
       onMouseEnter={() => {
@@ -78,6 +91,8 @@ export function Toaster() {
         schedule(left.current);
       }}
     >
+      {/* seluruh toast = progress bar: lapisan terang menyusut kanan → kiri sesuai sisa waktu */}
+      {t ? <i className="toast-bar" key={"bar" + t.id} aria-hidden="true" style={{ animationDuration: t.ms + "ms" }} /> : null}
       {t ? (
         // di-key per toast: toast baru pas yang lama masih tampil → isinya "nendang" sedikit
         <span className="toast-body" key={t.id}>
@@ -97,7 +112,6 @@ export function Toaster() {
               {t.action.label}
             </button>
           ) : null}
-          <i className="toast-bar" aria-hidden="true" style={{ animationDuration: t.ms + "ms" }} />
         </span>
       ) : null}
     </div>

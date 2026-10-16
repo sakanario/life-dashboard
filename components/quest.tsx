@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useRef, useState, useTransition } from "react";
 import { focusFirst } from "./habits";
 import { api, type ToggleResult } from "@/lib/client-api";
-import { toast } from "./toast";
+import { toast, toastInfo, toastWarn, toastError } from "./toast";
 import { ArcChip } from "./ui";
 import { Picker } from "./picker";
 
@@ -47,11 +47,11 @@ export function useQuestToggle() {
           const where = `${res.file}:${res.line}`;
           if (res.done) toast(res.journal.action === "added" ? "Quest selesai, dicatat di jurnal" : "Quest selesai", where);
           else if (res.journal.action === "not-found" && res.journal.file)
-            toast("Quest dibuka lagi. Baris di jurnal ga dihapus (udah diedit / ga ada)", res.journal.file);
-          else toast("Quest dibuka lagi", where);
+            toastWarn("Quest dibuka lagi. Baris di jurnal ga dihapus (udah diedit / ga ada)", res.journal.file);
+          else toastInfo("Quest dibuka lagi", where);
         }
       } catch (e) {
-        toast((e as Error).message);
+        toastError((e as Error).message);
       } finally {
         jobs.current.delete(key);
         // data server baru + buang status optimistis dalam satu transisi biar ga kedip
@@ -184,7 +184,7 @@ export function AddQuestForm({
       onAdded?.(target);
       startTransition(() => router.refresh());
     } catch (e) {
-      toast((e as Error).message);
+      toastError((e as Error).message);
     } finally {
       setBusy(false);
       focusFirst([inputId]);

@@ -9,7 +9,7 @@ import { AddQuestForm, useQuestToggle } from "@/components/quest";
 import { QuestList } from "@/components/quest-manage";
 import { useFresh, useLeaving } from "@/components/motion";
 import { SlideSeg } from "@/components/slide-seg";
-import { toast } from "@/components/toast";
+import { toast, toastError } from "@/components/toast";
 import { Bar } from "@/components/ui";
 import { api } from "@/lib/client-api";
 import type { getProjectsPage } from "@/lib/vault/views";
@@ -50,7 +50,7 @@ function useWrite() {
       after?.(r);
       if (refresh) startTransition(() => router.refresh());
     } catch (e) {
-      toast((e as Error).message);
+      toastError((e as Error).message);
     } finally {
       setBusy(false);
     }
@@ -116,10 +116,8 @@ export function ProjectsView({
       () => api.archiveProject(p.slug),
       (r) => {
         closeGone();
-        toast("Proyek diarsip", `${r.from} → ${r.to}`, {
-          label: "Urungkan",
-          fn: () => void run(() => api.restoreProject(p.slug, r.prevStatus), (x) => toast("Arsip dibatalin", `${x.from} → ${x.to}`)),
-        });
+        // tanpa Urungkan: proyek diarsip bisa dipulihkan dari daftar Arsip
+        toast("Proyek diarsip", `${r.from} → ${r.to}`);
       },
       { refresh: false },
     );

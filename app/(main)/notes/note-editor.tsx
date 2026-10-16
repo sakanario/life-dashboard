@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import { focusFirst } from "@/components/habits";
-import { toast } from "@/components/toast";
+import { toast, toastWarn, toastError } from "@/components/toast";
 import { api, ApiError } from "@/lib/client-api";
 
 type Base = { raw: string; mtime: number };
@@ -47,7 +47,7 @@ export function NoteDoc({ path, initialEdit, children }: { path: string; initial
       syncEdit(true);
       focusFirst(["note-src"]);
     } catch (e) {
-      toast((e as Error).message);
+      toastError((e as Error).message);
     } finally {
       setBusy(false);
     }
@@ -98,8 +98,8 @@ export function NoteDoc({ path, initialEdit, children }: { path: string; initial
       if (e instanceof ApiError && e.status === 409) {
         const d = e.detail as Base | null;
         if (d) setConflict(d);
-        toast("Catatan berubah dari luar. Cek dulu sebelum nimpa.");
-      } else toast((e as Error).message);
+        toastWarn("Catatan berubah dari luar. Cek dulu sebelum nimpa.");
+      } else toastError((e as Error).message);
     } finally {
       setBusy(false);
     }

@@ -336,7 +336,7 @@ h3{font-size:1rem;font-weight:500}
 .pal li button{width:100%;border:0;background:none;display:flex;gap:10px;align-items:center;padding:8px 10px;border-radius:7px;text-align:left}
 .pal li button:hover,.pal li button.sel{background:var(--accent-soft)}
 .pal li .k{margin-left:auto}
-.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--ink);color:var(--bg);border-radius:10px;padding:10px 16px;font-size:.86rem;z-index:60;display:flex;gap:10px;align-items:center;max-width:calc(100% - 32px)}
+.toast{position:fixed;right:16px;top:16px;background:var(--ink);color:var(--bg);border-radius:10px;padding:10px 16px;font-size:.86rem;z-index:60;display:flex;gap:10px;align-items:center;max-width:min(420px,calc(100% - 32px))}
 .toast .mono{opacity:.75}
 .toast[hidden]{display:none}
 .sample{font-size:.72rem;color:var(--muted);border:1px dashed var(--line);border-radius:99px;padding:1px 8px}
@@ -463,6 +463,10 @@ h3{font-weight:700}
 .toast{background:var(--navy);color:var(--on-navy);border-radius:99px;padding:10px 20px}
 .toast .btn{color:var(--on-navy);background:none;box-shadow:inset 0 0 0 1.5px currentColor}
 .toast .btn:hover{color:var(--on-navy)}
+/* warna toast per jenis (info = navy bawaan, ok/warn/error di bawah); dipatok, bukan --good/--bad, biar teks putih tetap kebaca di tema gelap */
+.toast.ok{background:#3f7a47}
+.toast.warn{background:#a85600}
+.toast.error{background:#b3343f}
 
 /* Montserrat runs wider: let the journal meta shrink instead of running into the file path */
 .jstat .jmeta{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
@@ -697,15 +701,15 @@ a.btn{text-decoration:none;color:inherit}
 .habit.done .hb::after{animation:ld-fade .2s ease .08s backwards}
 @keyframes ld-fade{from{opacity:0}}
 @keyframes ld-check{0%{transform:scale(.7)}60%{transform:scale(1.15)}100%{transform:none}}
-/* toast: muncul mantul dari bawah , bar sisa waktu (berhenti pas di-hover), toast pengganti nendang, keluar turun + pudar */
+/* toast (pojok kanan atas): muncul mantul dari kanan, seluruh toast = bar sisa waktu (berhenti pas di-hover), toast pengganti nendang, keluar geser ke kanan + pudar */
 .toast{overflow:hidden}
 .toast:not([hidden]){animation:toast-in .46s cubic-bezier(.2,.9,.3,1.25)}
 .toast.leaving{animation:toast-out .22s cubic-bezier(.5,0,.75,0) forwards}
-.toast-body{display:flex;gap:10px;align-items:center;animation:toast-bump .32s cubic-bezier(.2,.9,.3,1.3)}
-.toast-bar{position:absolute;left:18px;right:18px;bottom:3px;height:2px;border-radius:2px;background:currentColor;opacity:.35;transform-origin:left;animation:toast-bar linear forwards}
+.toast-body{position:relative;display:flex;gap:10px;align-items:center;animation:toast-bump .32s cubic-bezier(.2,.9,.3,1.3)}
+.toast-bar{position:absolute;inset:0;background:rgba(255,255,255,.16);transform-origin:left;animation:toast-bar linear forwards;pointer-events:none}
 .toast.paused .toast-bar{animation-play-state:paused}
-@keyframes toast-in{0%{opacity:0;transform:translate(-50%,28px) scale(.86)}60%{opacity:1;transform:translate(-50%,-5px) scale(1.03)}100%{transform:translate(-50%,0) scale(1)}}
-@keyframes toast-out{to{opacity:0;transform:translate(-50%,18px) scale(.94)}}
+@keyframes toast-in{0%{opacity:0;transform:translateX(32px) scale(.9)}60%{opacity:1;transform:translateX(-4px) scale(1.02)}100%{transform:none}}
+@keyframes toast-out{to{opacity:0;transform:translateX(24px) scale(.96)}}
 @keyframes toast-bump{0%{opacity:.4;transform:scale(.96)}60%{opacity:1;transform:scale(1.02)}100%{transform:none}}
 @keyframes toast-bar{to{transform:scaleX(0)}}
 /* banner peringatan muncul halus; yang role=alert (konflik simpan) goyang sekali biar kelihatan */

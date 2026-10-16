@@ -8,7 +8,7 @@ import { IC_MOVE, IC_UP } from "@/components/icons";
 import { useEnter, useFresh, useLeaving } from "@/components/motion";
 import { Picker } from "@/components/picker";
 import { SlideSeg } from "@/components/slide-seg";
-import { toast } from "@/components/toast";
+import { toast, toastWarn, toastError } from "@/components/toast";
 import { Bar } from "@/components/ui";
 import { useWatchEp } from "@/components/watch-ep";
 import { api } from "@/lib/client-api";
@@ -68,14 +68,14 @@ export function WatchView({ items }: { items: WatchItem[] }) {
             toast("Hapus dibatalin", `${x.from} → ${x.to}`);
             markEnter(w.slug);
           } catch (e) {
-            toast((e as Error).message);
+            toastError((e as Error).message);
           } finally {
             refresh();
           }
         },
       });
     } catch (e) {
-      toast((e as Error).message);
+      toastError((e as Error).message);
     } finally {
       refresh();
     }
@@ -216,7 +216,7 @@ function Cover({ w }: { w: WatchItem }) {
   const has = !!w.cover;
 
   async function upload(file: File) {
-    if (!file.type.startsWith("image/") || file.size > COVER_MAX_BYTES) return toast("File harus gambar, maks 5 MB");
+    if (!file.type.startsWith("image/") || file.size > COVER_MAX_BYTES) return toastWarn("File harus gambar, maks 5 MB");
     setBusy(true);
     setEdit(null);
     try {
@@ -224,7 +224,7 @@ function Cover({ w }: { w: WatchItem }) {
       toast("Cover disimpan", `${r.cover} · cover`);
       startTransition(() => router.refresh());
     } catch (e) {
-      toast((e as Error).message);
+      toastError((e as Error).message);
     } finally {
       setBusy(false);
       focusFirst(["cover-up-" + w.slug], 3000);
@@ -239,7 +239,7 @@ function Cover({ w }: { w: WatchItem }) {
       toast("Cover dihapus", `${r.file} · cover${r.removedFile ? ` · ${r.removedFile} dihapus` : ""}`);
       startTransition(() => router.refresh());
     } catch (e) {
-      toast((e as Error).message);
+      toastError((e as Error).message);
     } finally {
       setBusy(false);
       focusFirst(["cover-up-" + w.slug], 3000);
@@ -258,7 +258,7 @@ function Cover({ w }: { w: WatchItem }) {
         setEdit(null);
       });
     } catch (e) {
-      toast((e as Error).message);
+      toastError((e as Error).message);
     } finally {
       setBusy(false);
       focusFirst(["cover-adj-" + w.slug], 3000);
@@ -473,7 +473,7 @@ function AddForm({ onClose, onCreated }: { onClose: () => void; onCreated: (slug
         const t = title.trim();
         if (!t || busy) return;
         const n = total.trim() ? Number(total) : null;
-        if (n !== null && !(Number.isInteger(n) && n >= 1)) return toast("Total episode harus angka bulat ≥ 1");
+        if (n !== null && !(Number.isInteger(n) && n >= 1)) return toastWarn("Total episode harus angka bulat ≥ 1");
         setBusy(true);
         try {
           const r = await api.createWatch({ title: t, type, status, total: n });
@@ -483,7 +483,7 @@ function AddForm({ onClose, onCreated }: { onClose: () => void; onCreated: (slug
           setTotal("");
           startTransition(() => router.refresh());
         } catch (err) {
-          toast((err as Error).message);
+          toastError((err as Error).message);
         } finally {
           setBusy(false);
           focusFirst(["watch-title"]);
@@ -575,7 +575,7 @@ function WatchDrawer({
       if (r.changed.length) toast(msg, `${r.file} · ${r.changed.join(", ")}`);
       startTransition(() => router.refresh());
     } catch (e) {
-      toast((e as Error).message);
+      toastError((e as Error).message);
     } finally {
       setBusy(false);
     }
@@ -604,7 +604,7 @@ function WatchDrawer({
             if (n === val) return;
             if (key === "progress" && n === null) return void (e.target.value = String(val ?? 0));
             if (n !== null && !(Number.isInteger(n) && n >= min)) {
-              toast(`${label} harus angka bulat ≥ ${min}`);
+              toastWarn(`${label} harus angka bulat ≥ ${min}`);
               e.target.value = val === null ? "" : String(val);
               return;
             }

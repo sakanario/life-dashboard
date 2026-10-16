@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { api, ApiError } from "@/lib/client-api";
-import { toast } from "./toast";
+import { toast, toastWarn, toastError } from "./toast";
 
 const wc = (s: string) => (s.trim().match(/\S+/g) || []).length;
 type Draft = { hl: string; sum: string; base: { hl: string; sum: string } };
@@ -61,8 +61,8 @@ export function JournalForm({
     } catch (e) {
       if (e instanceof ApiError && e.status === 409) {
         setConflict(true);
-        toast("Jurnal berubah dari luar. Cek dulu sebelum nimpa.");
-      } else toast((e as Error).message);
+        toastWarn("Jurnal berubah dari luar. Cek dulu sebelum nimpa.");
+      } else toastError((e as Error).message);
     } finally {
       setSaving(false);
     }

@@ -6,7 +6,7 @@ import { useState, useTransition } from "react";
 import { focusFirst } from "@/components/habits";
 import { AddQuestForm, useQuestToggle } from "@/components/quest";
 import { QuestList } from "@/components/quest-manage";
-import { toast } from "@/components/toast";
+import { toast, toastInfo, toastError } from "@/components/toast";
 import { ArcChip, Bar } from "@/components/ui";
 import { api } from "@/lib/client-api";
 import { fmtDate } from "@/lib/vault/dates";
@@ -36,7 +36,7 @@ function useRun() {
       after?.(r);
       startTransition(() => router.refresh());
     } catch (e) {
-      toast((e as Error).message);
+      toastError((e as Error).message);
     } finally {
       setBusy(false);
     }
@@ -229,7 +229,7 @@ function EditGoal({ g, onDone }: { g: G; onDone: (saved: boolean) => void }) {
             (r) => {
               // pindah horizon = kartu muncul di seksi lain → kasih animasi masuk di sana
               if (r.changed.includes("horizon")) markAdded(g.slug);
-              toast(r.changed.length ? "Goal disimpan" : "Ga ada yang berubah", r.changed.length ? `${r.file} · ${r.changed.join(", ")}` : r.file);
+              (r.changed.length ? toast : toastInfo)(r.changed.length ? "Goal disimpan" : "Ga ada yang berubah", r.changed.length ? `${r.file} · ${r.changed.join(", ")}` : r.file);
               onDone(true);
             },
           )

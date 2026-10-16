@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useRef, useState, useTransition } from "react";
 import { api } from "@/lib/client-api";
-import { toast } from "./toast";
+import { toast, toastInfo, toastError } from "./toast";
 
 export type HabitState = "done" | "missed" | null;
 
@@ -35,11 +35,11 @@ export function useHabitSetter(date: string) {
             sent = w;
             if (job.want === sent) {
               const where = `${r.file.split("/").pop()} · habits.${id}${w ? ": " + w : ""}`;
-              toast(w === "done" ? `${label}: selesai` : w === "missed" ? "Oke, besok lagi" : "Dibatalin", where);
+              (w === "done" ? toast : toastInfo)(w === "done" ? `${label}: selesai` : w === "missed" ? "Oke, besok lagi" : "Dibatalin", where);
             }
           }
         } catch (e) {
-          toast((e as Error).message);
+          toastError((e as Error).message);
         } finally {
           jobs.current.delete(id);
           startTransition(() => {

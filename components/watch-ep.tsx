@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { toast } from "@/components/toast";
+import { toast, toastInfo, toastError } from "@/components/toast";
 import { api } from "@/lib/client-api";
 
 type W = { slug: string; title: string; progress: number };
@@ -29,9 +29,9 @@ export function useWatchEp() {
       const r = await api.updateWatch(w.slug, { epDelta: d });
       const st = r.changed.includes("status") ? ` · status: ${r.status}` : "";
       if (d === 1) toast(`${w.title} → ep ${r.progress}`, `${r.file} · progress${st}`, { label: "Batal", fn: () => void step(w, -1) });
-      else toast(`${w.title} balik ke ep ${r.progress}`, `${r.file} · progress`);
+      else toastInfo(`${w.title} balik ke ep ${r.progress}`, `${r.file} · progress`);
     } catch (e) {
-      toast((e as Error).message);
+      toastError((e as Error).message);
     } finally {
       settle(w.slug, d);
     }
