@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { api } from "@/lib/client-api";
 import { focusFirst } from "./habits";
-import { QuestItem, type QuestRow } from "./quest";
+import { QuestItem, useJustAdded, type QuestRow } from "./quest";
 import { toast } from "./toast";
 
 /** Teks quest yang bisa diedit: isi baris asli (markdown & @tag tetap), tanpa checkbox & done:. */
@@ -93,6 +93,7 @@ function ManagedRow<T extends QuestRow>({
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const pid = (k: string, id = q.id) => `${idPrefix}${k}-${id}`;
+  const enter = useJustAdded(q.id);
 
   async function run<R>(fn: () => Promise<R>, after: (r: R) => void) {
     if (busy) return;
@@ -157,7 +158,7 @@ function ManagedRow<T extends QuestRow>({
   };
 
   return (
-    <li className={"task has-act" + (done ? " done" : "")} style={q.depth ? { paddingLeft: q.depth * 18 } : undefined}>
+    <li className={"task has-act" + (done ? " done" : "") + (enter ? " enter" : "")} style={q.depth ? { paddingLeft: q.depth * 18 } : undefined}>
       <button
         className="check"
         type="button"

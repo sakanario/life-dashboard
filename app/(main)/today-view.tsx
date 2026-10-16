@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { focusFirst, HabitRow, useHabitSetter, type HabitState } from "@/components/habits";
 import { JournalForm } from "@/components/journal-form";
 import { AddQuestForm, QuestItem, useQuestToggle } from "@/components/quest";
@@ -58,6 +58,8 @@ export function TodayView({ data, greeting, hour, journalOpen: jOpen0 }: { data:
   const closed = useMemo<Record<string, boolean>>(() => { try { return JSON.parse(closedRaw); } catch { return {}; } }, [closedRaw]);
   const [journalOpen, setJournalOpen] = useState(jOpen0);
   const [doneOpen, setDoneOpen] = useState(false);
+  const tgRef = useRef<HTMLDivElement>(null);
+  const bulkTimer = useRef<number>(undefined);
   const ep = useWatchEp();
   const { isDone, toggle } = useQuestToggle();
   const habit = useHabitSetter(data.today);
@@ -154,14 +156,17 @@ export function TodayView({ data, greeting, hour, journalOpen: jOpen0 }: { data:
               </h2>
               <span className="src">{data.journalFile}</span>
             </div>
-            <div id="jbody" hidden={!journalOpen}>
-              <JournalForm
-                date={data.today}
-                highlight={j?.highlight ?? ""}
-                summary={j?.summary ?? ""}
-                savedAt={j?.savedAt ?? null}
-                questsDone={j?.questsDone ?? []}
-              />
+            {/* tetap dirender biar tinggi bisa dianimasiin; inert waktu tertutup biar ga bisa difokus */}
+            <div id="jbody" className="jbody" inert={!journalOpen}>
+              <div className="jbody-in">
+                <JournalForm
+                  date={data.today}
+                  highlight={j?.highlight ?? ""}
+                  summary={j?.summary ?? ""}
+                  savedAt={j?.savedAt ?? null}
+                  questsDone={j?.questsDone ?? []}
+                />
+              </div>
             </div>
           </section>
 
@@ -179,6 +184,13 @@ export function TodayView({ data, greeting, hour, journalOpen: jOpen0 }: { data:
                   onClick={() => {
                     const next = { ...closed };
                     groups.forEach((g) => (next[g.key] = anyOpen));
+                    // grup buka/tutup berurutan (lihat .tgroups.bulk di CSS)
+                    const box = tgRef.current;
+                    if (box) {
+                      box.classList.add("bulk");
+                      clearTimeout(bulkTimer.current);
+                      bulkTimer.current = window.setTimeout(() => box.classList.remove("bulk"), 300 + groups.length * 40);
+                    }
                     saveClosed(next);
                   }}
                 >
@@ -191,11 +203,12 @@ export function TodayView({ data, greeting, hour, journalOpen: jOpen0 }: { data:
               <SlideSeg label="Filter quest" value={filter} options={FILTERS} onChange={setFilter} />
             </div>
             {groups.length ? (
-              <div className="tgroups tswap" key={filter}>
-                {groups.map((g) => (
+              <div className="tgroups tswap" key={filter} ref={tgRef}>
+                {groups.map((g, i) => (
                   <details
                     key={g.key}
                     className="tgroup"
+                    style={{ "--i": i } as React.CSSProperties}
                     data-tg={g.key}
                     open={!closed[g.key]}
                     onToggle={(e) => {

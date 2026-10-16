@@ -97,6 +97,10 @@ h3{font-size:1rem;font-weight:500}
 .tasks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
 .task{display:grid;grid-template-columns:22px minmax(0,1fr);gap:10px;padding:8px 0;border-top:1px solid var(--line)}
 .task:first-child{border-top:0}
+/* quest yang barusan ditambah: tumbuh + muncul, lalu sorotan oranye memudar */
+.task.enter{interpolate-size:allow-keywords;border-radius:10px;animation:task-in .42s cubic-bezier(.2,.7,.3,1),task-glow 1.8s ease .25s backwards}
+@keyframes task-in{from{block-size:0;padding-block:0;opacity:0;transform:translateY(-8px);overflow:clip}}
+@keyframes task-glow{from{background:var(--accent-soft)}}
 .check{width:18px;height:18px;margin-top:2px;border:1.5px solid var(--muted);border-radius:5px;background:none;padding:0;display:grid;place-items:center}
 .check:hover{border-color:var(--accent)}
 .task.done .check{background:var(--accent);border-color:var(--accent)}
@@ -120,6 +124,13 @@ h3{font-size:1rem;font-weight:500}
 .tgroup > summary::-webkit-details-marker,.tdone > summary::-webkit-details-marker{display:none}
 .tgroup > summary::before,.tdone > summary::before{content:"";flex:none;width:6px;height:6px;margin:0 3px;border-right:1.5px solid var(--muted);border-bottom:1.5px solid var(--muted);transform:rotate(-45deg)}
 .tgroup[open] > summary::before,.tdone[open] > summary::before{transform:rotate(45deg)}
+.tgroup > summary::before,.tdone > summary::before{transition:transform .3s cubic-bezier(.2,.7,.3,1)}
+/* buka/tutup grup: tinggi auto ikut dianimasiin (Chrome/Edge 131+; browser lain langsung buka/tutup) */
+.tgroup,.tdone{interpolate-size:allow-keywords}
+.tgroup::details-content,.tdone::details-content{block-size:0;overflow:clip;opacity:0;transition:block-size .3s cubic-bezier(.2,.7,.3,1),opacity .2s ease,content-visibility .3s allow-discrete}
+.tgroup[open]::details-content,.tdone[open]::details-content{block-size:auto;opacity:1}
+/* Buka/Tutup semua: grup bergerak berurutan, bukan barengan */
+.tgroups.bulk .tgroup::details-content,.tgroups.bulk .tgroup > summary::before{transition-delay:calc(var(--i, 0) * 40ms)}
 .tgroup > summary:hover,.tdone > summary:hover{background:var(--sunk)}
 .tgroup > summary .n{margin-left:auto;font-family:var(--f-mono);font-size:.74rem;color:var(--muted);font-weight:500}
 .tgroup .tasks,.tdone .tasks{padding-left:18px}
@@ -136,13 +147,20 @@ h3{font-size:1rem;font-weight:500}
 .jform textarea{resize:vertical;min-height:8.5em;line-height:1.5}
 .jfoot{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .jfoot .hint{font-size:.76rem;color:var(--muted);margin-right:auto}
+.jpanel{transition:padding .32s cubic-bezier(.2,.7,.3,1)}
+.jpanel .panel-h{transition:margin-bottom .32s cubic-bezier(.2,.7,.3,1)}
 .jpanel:not(.open){padding-block:10px}
 .jpanel:not(.open) .panel-h{margin-bottom:0}
+/* buka/tutup: tinggi 0fr ↔ 1fr (tanpa ngukur), isinya memudar + geser dikit */
+.jbody{display:grid;grid-template-rows:1fr;transition:grid-template-rows .32s cubic-bezier(.2,.7,.3,1)}
+.jpanel:not(.open) .jbody{grid-template-rows:0fr}
+.jbody-in{min-height:0;overflow:hidden;padding:3px;margin:-3px;opacity:1;transform:none;transition:opacity .24s ease .06s,transform .32s cubic-bezier(.2,.7,.3,1)}
+.jpanel:not(.open) .jbody-in{opacity:0;transform:translateY(-6px);transition:opacity .16s ease,transform .32s cubic-bezier(.2,.7,.3,1)}
 .jhead h2{flex:1 1 auto;min-width:0;margin:0}
 .jtoggle{display:flex;align-items:center;gap:8px;width:100%;min-width:0;border:0;background:none;color:var(--ink);padding:4px 6px;margin:-4px -6px;border-radius:8px;font:inherit;text-align:left;cursor:pointer}
 .jtoggle:hover{background:var(--sunk)}
 .jt-title{flex:none;font-weight:700}
-.jchev{flex:none;width:16px;height:16px;color:var(--muted);transition:transform .15s}
+.jchev{flex:none;width:16px;height:16px;color:var(--muted);transition:transform .32s cubic-bezier(.2,.7,.3,1)}
 .jtoggle[aria-expanded="true"] .jchev{transform:rotate(90deg)}
 .jstat{display:flex;align-items:center;gap:6px;flex:1 1 auto;min-width:0;font-family:var(--f-body);font-size:.8rem;font-weight:400;color:var(--muted)}
 .jstat .jhl{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink)}

@@ -83,6 +83,18 @@ export function useQuestToggle() {
   return { isDone, toggle };
 }
 
+/* quest yang barusan ditambah: dapet animasi masuk waktu pertama kali muncul (bukan tiap refresh) */
+const justAdded = new Set<string>();
+function markAdded(id: string) {
+  justAdded.add(id);
+  setTimeout(() => justAdded.delete(id), 4000);
+}
+/** true kalau baris ini quest yang barusan ditambah. Dibaca sekali waktu mount. */
+export function useJustAdded(id: string) {
+  const [on] = useState(() => justAdded.has(id));
+  return on;
+}
+
 export function QuestItem<T extends QuestRow>({
   q,
   done = q.done,
@@ -100,8 +112,9 @@ export function QuestItem<T extends QuestRow>({
   idPrefix?: string;
   project?: { title: string; type: string | null; isArchived: boolean } | null;
 }) {
+  const enter = useJustAdded(q.id);
   return (
-    <li className={"task" + (done ? " done" : "")} style={q.depth ? { paddingLeft: q.depth * 18 } : undefined}>
+    <li className={"task" + (done ? " done" : "") + (enter ? " enter" : "")} style={q.depth ? { paddingLeft: q.depth * 18 } : undefined}>
       <button
         className="check"
         type="button"
@@ -165,6 +178,7 @@ export function AddQuestForm({
     setBusy(true);
     try {
       const r = await api.addQuest(t, { project: target, goal: goal ?? null });
+      markAdded(`${r.file}:${r.line}`);
       toast("Quest ditambah", `${r.file}:${r.line}`);
       setText("");
       onAdded?.(target);
