@@ -680,3 +680,30 @@ a.btn{text-decoration:none;color:inherit}
 .alert{animation:ld-rise .46s cubic-bezier(.2,.7,.3,1) backwards}
 .arc-banner[role="alert"]{animation:ld-pop .26s cubic-bezier(.2,.7,.3,1),ld-shake .42s ease .2s}
 @keyframes ld-shake{20%,60%{transform:translateX(-5px)}40%,80%{transform:translateX(5px)}}
+/* watchlist: form tambah judul , satu baris, semua kontrol pil 40px */
+.wadd{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px 14px}
+.wadd-lbl{font-size:.78rem;font-weight:600;color:var(--muted)}
+.wadd-title{flex:1 1 280px;min-width:0}
+.wadd input{height:40px;width:100%;box-sizing:border-box;border:0;border-radius:99px;padding:0 16px;background:var(--field);color:var(--ink);font-size:.92rem;box-shadow:inset 0 1px 2px rgba(43,35,80,.06);transition:background .2s ease}
+.wadd input:hover{background:var(--glass-strong)}
+.wadd input:focus-visible{outline:2px solid var(--navy);outline-offset:1px}
+.wadd input::placeholder{color:var(--muted)}
+.wadd .picker{height:40px;min-width:120px}
+.wadd-total{width:96px}
+.wadd-total input{text-align:center;padding:0 10px}
+.wadd-acts{display:flex;gap:6px;margin-left:auto}
+.wadd-acts .btn{height:40px}
+@media (max-width:760px){.wadd-title{flex-basis:100%}.wadd-acts{width:100%;justify-content:flex-end}}
+/* buka/tutup halus (tinggi 0fr ↔ 1fr); pas ketutup gap .view ikut dilipat */
+.ld-reveal{display:grid;grid-template-rows:0fr;margin-top:-22px;transition:grid-template-rows .34s cubic-bezier(.2,.7,.3,1),margin .34s cubic-bezier(.2,.7,.3,1)}
+.ld-reveal.open{grid-template-rows:1fr;margin-top:0}
+.ld-reveal-in{min-height:0;overflow:hidden;padding:3px;margin:-3px;opacity:0;transform:translateY(-8px) scale(.99);transition:opacity .18s ease,transform .34s cubic-bezier(.2,.7,.3,1)}
+.ld-reveal.open .ld-reveal-in{opacity:1;transform:none;transition:opacity .26s ease .06s,transform .34s cubic-bezier(.2,.7,.3,1)}
+/* watchlist: kartu muncul berurutan (dibuka & tiap ganti filter), judul baru disorot, +1 ep angka mantul, bar tumbuh */
+.watch-grid > .watch{animation:ld-rise .46s cubic-bezier(.2,.7,.3,1) backwards;animation-delay:calc(var(--i, 0) * 45ms)}
+.watch-grid > .watch.enter{animation:ld-in .5s cubic-bezier(.2,.9,.3,1.15) backwards,ld-glow 2s ease .35s backwards}
+.ep-n{display:inline-block}
+.ep-n.bump{animation:ld-bump .38s cubic-bezier(.3,1.6,.5,1)}
+@keyframes ld-bump{0%{transform:translateY(6px);opacity:.3}50%{transform:scale(1.3);color:var(--accent-text)}100%{transform:none}}
+.watch .bar i,.proj .bar i{transition:width .5s cubic-bezier(.2,.7,.3,1);animation:ld-grow .7s cubic-bezier(.2,.7,.3,1) backwards;animation-delay:calc(var(--i, 0) * 45ms + .2s)}
+@keyframes ld-grow{from{width:0}}

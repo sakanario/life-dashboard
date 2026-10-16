@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { focusFirst } from "@/components/habits";
 import { IC_MOVE, IC_UP } from "@/components/icons";
+import { useEnter, useFresh, useLeaving } from "@/components/motion";
+import { Picker } from "@/components/picker";
+import { SlideSeg } from "@/components/slide-seg";
 import { toast } from "@/components/toast";
 import { Bar } from "@/components/ui";
 import { useWatchEp } from "@/components/watch-ep";
@@ -43,6 +46,46 @@ export function WatchView({ items }: { items: WatchItem[] }) {
   const types = [...new Set([...WATCH_TYPES, ...items.map((w) => w.type)])];
   const list = items.filter((w) => (f === "all" || w.status === f) && (type === "all" || w.type === type));
   const opened = items.find((w) => w.slug === openSlug) ?? null;
+  const [leaving, leave] = useLeaving<WatchItem>();
+  const [entered, markEnter] = useEnter(); // judul baru: muncul + sorotan
+  const [bumped, markBump] = useEnter(600); // +1 ep: angka episode mantul
+  const [formKey, setFormKey] = useState(0); // form dipasang ulang tiap dibuka (isi bersih)
+
+  const router = useRouter();
+  const [, startTransition] = useTransition();
+  const refresh = () => startTransition(() => router.refresh());
+
+  async function remove(w: WatchItem) {
+    try {
+      const r = await api.deleteWatch(w.slug);
+      leave(w);
+      setOpenSlug(null);
+      toast("Judul dihapus", `${r.from} → ${r.to}`, {
+        label: "Urungkan",
+        fn: async () => {
+          try {
+            const x = await api.undeleteWatch(w.slug, r.to);
+            toast("Hapus dibatalin", `${x.from} → ${x.to}`);
+            markEnter(w.slug);
+          } catch (e) {
+            toast((e as Error).message);
+          } finally {
+            refresh();
+          }
+        },
+      });
+    } catch (e) {
+      toast((e as Error).message);
+    } finally {
+      refresh();
+    }
+  }
+
+  const openAdd = () => {
+    if (!adding) setFormKey((k) => k + 1);
+    setAdding(!adding);
+    if (!adding) focusFirst(["watch-title"], 400);
+  };
 
   return (
     <>
@@ -52,21 +95,18 @@ export function WatchView({ items }: { items: WatchItem[] }) {
           <h1>Watchlist</h1>
         </div>
         <div className="toolbar">
-          <div className="seg" role="group" aria-label="Filter status">
-            {(
-              [
-                ["all", "Semua"],
-                ["watching", "Ditonton"],
-                ["plan", "Rencana"],
-                ["done", "Selesai"],
-                ["dropped", "Drop"],
-              ] as const
-            ).map(([k, l]) => (
-              <button key={k} type="button" aria-pressed={f === k} onClick={() => setF(k)}>
-                {l}
-              </button>
-            ))}
-          </div>
+          <SlideSeg
+            label="Filter status"
+            value={f}
+            onChange={setF}
+            options={[
+              ["all", "Semua"],
+              ["watching", "Ditonton"],
+              ["plan", "Rencana"],
+              ["done", "Selesai"],
+              ["dropped", "Drop"],
+            ]}
+          />
           <select className="sel" aria-label="Filter tipe" value={type} onChange={(e) => setType(e.target.value)}>
             <option value="all">semua tipe</option>
             {types.map((t) => (
@@ -75,24 +115,34 @@ export function WatchView({ items }: { items: WatchItem[] }) {
               </option>
             ))}
           </select>
-          <button className="btn" type="button" id="watch-add" aria-expanded={adding} onClick={() => setAdding((a) => !a)}>
+          <button className="btn" type="button" id="watch-add" aria-expanded={adding} aria-controls="watch-form" onClick={openAdd}>
             + Judul
           </button>
         </div>
       </div>
-      {adding ? (
-        <AddForm
-          onClose={() => {
-            setAdding(false);
-            focusFirst(["watch-add"]);
-          }}
-        />
-      ) : null}
-      <div className="watch-grid">
-        {list.map((w) => {
+      {/* form buka/tutup halus (tinggi 0fr ↔ 1fr); pas ketutup tetap dipasang tapi inert */}
+      <div className={"ld-reveal" + (adding ? " open" : "")} id="watch-form" inert={!adding}>
+        <div className="ld-reveal-in">
+          <AddForm
+            key={formKey}
+            onCreated={markEnter}
+            onClose={() => {
+              setAdding(false);
+              focusFirst(["watch-add"]);
+            }}
+          />
+        </div>
+      </div>
+      {/* key = filter: ganti filter → grid dipasang ulang, kartu muncul berurutan lagi */}
+      <div className="watch-grid" key={f + "|" + type}>
+        {list.map((w, i) => {
           const progress = progressOf(w);
           return (
-            <article key={w.slug} className="panel watch">
+            <article
+              key={w.slug}
+              className={"panel watch" + (entered === w.slug ? " enter" : "")}
+              style={{ "--i": Math.min(i, 12) } as React.CSSProperties}
+            >
               <Cover w={w} />
               <div className="watch-body">
                 <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
@@ -112,9 +162,12 @@ export function WatchView({ items }: { items: WatchItem[] }) {
                 </div>
                 <div className="ep">
                   <span className="muted">{w.type === "book" ? "Bab" : "Episode"}</span>
-                  <b className="tnum">{progress}</b>
+                  {/* key = angka: +1 ep → angkanya mantul */}
+                  <b className={"tnum ep-n" + (bumped === w.slug ? " bump" : "")} key={progress}>
+                    {progress}
+                  </b>
                   <span className="muted tnum">{w.total ? "/ " + w.total : ""}</span>
-                  <button className="btn sm" style={{ marginLeft: "auto" }} type="button" aria-label={`+1 episode ${w.title}`} onClick={() => void plusOne(w)}>
+                  <button className="btn sm" style={{ marginLeft: "auto" }} type="button" aria-label={`+1 episode ${w.title}`} onClick={() => { markBump(w.slug); void plusOne(w); }}>
                     +1 ep
                   </button>
                 </div>
@@ -127,16 +180,20 @@ export function WatchView({ items }: { items: WatchItem[] }) {
           );
         })}
       </div>
-      {list.length ? null : <p className="muted">Ga ada judul di filter ini.</p>}
+      {list.length ? null : <p className="muted tswap">Ga ada judul di filter ini.</p>}
       {opened ? (
         <WatchDrawer
           key={opened.slug}
           w={opened}
+          onDelete={() => remove(opened)}
           onClose={() => {
+            leave(opened);
             setOpenSlug(null);
             focusFirst(["wd-" + opened.slug]);
           }}
         />
+      ) : leaving ? (
+        <WatchDrawer key={leaving.slug} w={leaving} leaving onDelete={async () => {}} onClose={() => {}} />
       ) : null}
     </>
   );
@@ -399,7 +456,7 @@ function Cover({ w }: { w: WatchItem }) {
 
 /* ===== tambah judul ===== */
 
-function AddForm({ onClose }: { onClose: () => void }) {
+function AddForm({ onClose, onCreated }: { onClose: () => void; onCreated: (slug: string) => void }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [title, setTitle] = useState("");
@@ -410,8 +467,7 @@ function AddForm({ onClose }: { onClose: () => void }) {
 
   return (
     <form
-      className="panel jform"
-      style={{ marginBottom: 16 }}
+      className="panel wadd"
       onSubmit={async (e) => {
         e.preventDefault();
         const t = title.trim();
@@ -422,6 +478,7 @@ function AddForm({ onClose }: { onClose: () => void }) {
         try {
           const r = await api.createWatch({ title: t, type, status, total: n });
           toast("Judul ditambah", r.file);
+          onCreated(r.slug);
           setTitle("");
           setTotal("");
           startTransition(() => router.refresh());
@@ -439,46 +496,42 @@ function AddForm({ onClose }: { onClose: () => void }) {
         }
       }}
     >
-      <div className="np-row">
-        <div className="jfield" style={{ flex: 1, minWidth: 200 }}>
-          <label htmlFor="watch-title">Judul</label>
-          <input
-            id="watch-title"
-            autoFocus
-            autoComplete="off"
-            maxLength={200}
-            placeholder="Judul anime / series / film / buku…"
-            value={title}
-            readOnly={busy}
-            onChange={(e) => setTitle(e.target.value)}
-          />
-        </div>
-        <div className="jfield">
-          <label htmlFor="watch-type">Tipe</label>
-          <select id="watch-type" className="sel" value={type} onChange={(e) => setType(e.target.value)}>
-            {WATCH_TYPES.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="jfield">
-          <label htmlFor="watch-status">Status</label>
-          <select id="watch-status" className="sel" value={status} onChange={(e) => setStatus(e.target.value)}>
-            {WATCH_STATUS.map((s) => (
-              <option key={s} value={s}>
-                {WATCH_STATUS_LABEL[s]}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="jfield" style={{ width: 110 }}>
-          <label htmlFor="watch-total">Total ep</label>
-          <input id="watch-total" type="text" inputMode="numeric" placeholder="opsional" value={total} onChange={(e) => setTotal(e.target.value)} />
-        </div>
+      {/* satu baris: judul melebar, sisanya ukuran pas; semua kontrol tinggi sama (pil 40px) */}
+      <div className="jfield wadd-title">
+        <label htmlFor="watch-title">Judul</label>
+        <input
+          id="watch-title"
+          type="text"
+          autoComplete="off"
+          maxLength={200}
+          placeholder="Anime, series, film, buku…"
+          value={title}
+          readOnly={busy}
+          onChange={(e) => setTitle(e.target.value)}
+        />
       </div>
-      <div className="jfoot" style={{ justifyContent: "flex-end", gap: 6 }}>
+      <div className="jfield">
+        <span className="wadd-lbl">Tipe</span>
+        <Picker label="Tipe" value={type} onChange={setType} options={WATCH_TYPES.map((t) => ({ value: t, label: t }))} />
+      </div>
+      <div className="jfield">
+        <span className="wadd-lbl">Status</span>
+        <Picker label="Status" value={status} onChange={setStatus} options={WATCH_STATUS.map((s) => ({ value: s, label: WATCH_STATUS_LABEL[s] }))} />
+      </div>
+      <div className="jfield wadd-total">
+        <label htmlFor="watch-total">{type === "book" ? "Total bab" : "Total ep"}</label>
+        <input
+          id="watch-total"
+          type="text"
+          inputMode="numeric"
+          placeholder="—"
+          maxLength={5}
+          value={total}
+          // cuma angka; kosong = belum tahu
+          onChange={(e) => setTotal(e.target.value.replace(/\D/g, ""))}
+        />
+      </div>
+      <div className="wadd-acts">
         <button className="btn" type="button" onClick={onClose}>
           Tutup
         </button>
@@ -492,15 +545,28 @@ function AddForm({ onClose }: { onClose: () => void }) {
 
 /* ===== drawer: status, rating, progress, total, tipe ===== */
 
-function WatchDrawer({ w, onClose }: { w: WatchItem; onClose: () => void }) {
+function WatchDrawer({
+  w,
+  leaving = false,
+  onDelete,
+  onClose,
+}: {
+  w: WatchItem;
+  leaving?: boolean;
+  onDelete: () => Promise<void>;
+  onClose: () => void;
+}) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [busy, setBusy] = useState(false);
+  const [askDelete, setAskDelete] = useState(false);
+  const fresh = useFresh();
   useEffect(() => {
+    if (leaving) return;
     const k = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     document.addEventListener("keydown", k);
     return () => document.removeEventListener("keydown", k);
-  }, [onClose]);
+  }, [onClose, leaving]);
 
   async function save(patch: Parameters<typeof api.updateWatch>[1], msg: string) {
     setBusy(true);
@@ -550,8 +616,8 @@ function WatchDrawer({ w, onClose }: { w: WatchItem; onClose: () => void }) {
   );
 
   return (
-    <div className="scrim" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <aside className="drawer" role="dialog" aria-modal="true" aria-label={w.title}>
+    <div className={"scrim slide-scrim" + (leaving ? " leaving" : "")} inert={leaving} onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <aside className={"drawer" + (fresh ? " fresh" : "")} role="dialog" aria-modal="true" aria-label={w.title}>
         <div className="drawer-h">
           <div>
             <div className="eyebrow">{w.file}</div>
@@ -608,9 +674,56 @@ function WatchDrawer({ w, onClose }: { w: WatchItem; onClose: () => void }) {
         </dl>
         <div className="drawer-foot">
           <span className="src">Terakhir diubah {fmtDate(w.updated)}</span>
-          <Link className="btn sm" href={`/notes?path=${encodeURIComponent(w.file)}&edit=1`}>
-            Tulis catatan / kesan
-          </Link>
+          <div className="row">
+            <Link className="btn sm" href={`/notes?path=${encodeURIComponent(w.file)}&edit=1`}>
+              Tulis catatan / kesan
+            </Link>
+            <button
+              className="btn sm danger"
+              type="button"
+              id="wdelete"
+              aria-expanded={askDelete}
+              aria-controls="wdelbox"
+              onClick={() => {
+                setAskDelete(true);
+                focusFirst(["wdelyes"]);
+              }}
+            >
+              Hapus
+            </button>
+          </div>
+          {askDelete ? (
+            <div className="confirm pop-in" id="wdelbox" role="group" aria-labelledby="wdelmsg">
+              <p id="wdelmsg">
+                Hapus <b>{w.title}</b> dari watchlist? File-nya ga dihapus permanen, cuma dipindah ke <span className="mono">Archive/Deleted/Watchlist/</span>
+                {w.cover ? " (gambar cover tetap disimpan)" : ""}.
+              </p>
+              <div className="row">
+                <button
+                  className="btn sm danger"
+                  type="button"
+                  id="wdelyes"
+                  disabled={busy}
+                  onClick={() => {
+                    setBusy(true);
+                    void onDelete().finally(() => setBusy(false));
+                  }}
+                >
+                  {busy ? "Menghapus…" : "Ya, hapus"}
+                </button>
+                <button
+                  className="btn sm"
+                  type="button"
+                  onClick={() => {
+                    focusFirst(["wdelete"]);
+                    setAskDelete(false);
+                  }}
+                >
+                  Batal
+                </button>
+              </div>
+            </div>
+          ) : null}
         </div>
       </aside>
     </div>

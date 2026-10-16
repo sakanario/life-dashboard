@@ -801,6 +801,33 @@ export async function undeleteContent(slug: string, from: string) {
   });
 }
 
+/**
+ * Hapus judul watchlist: file dipindah ke Archive/Deleted/Watchlist/ (bisa diurungkan), ga dihapus permanen.
+ * Gambar cover di Watchlist/_covers/ dibiarin, biar Urungkan balikin judul lengkap dengan cover-nya.
+ */
+export async function deleteWatch(slug: string) {
+  const w = (await getVault()).watch.find((x) => x.slug === slug);
+  if (!w) throw new WriteError(404, "Judul tidak ketemu");
+  let to = `Archive/Deleted/Watchlist/${slug}.md`;
+  for (let n = 2; await exists(safeResolve(to)!.abs); n++) to = `Archive/Deleted/Watchlist/${slug}-${n}.md`;
+  return withLocks([w.file, to], async () => {
+    await moveDir(w.file, to); // rename biasa, jalan juga buat file
+    return { slug, from: w.file, to };
+  });
+}
+
+/** Urungkan hapus: Archive/Deleted/Watchlist/<x>.md balik ke Watchlist/<slug>.md. */
+export async function undeleteWatch(slug: string, from: string) {
+  if (!/^Archive\/Deleted\/Watchlist\/[^/\\]+\.md$/.test(from)) throw new WriteError(400, "Path judul terhapus tidak valid");
+  if (!/^[^/\\.][^/\\]*$/.test(slug)) throw new WriteError(400, "Slug tidak valid");
+  const to = `Watchlist/${slug}.md`;
+  return withLocks([from, to], async () => {
+    if (!(await exists(resolveMd(from).abs))) throw new WriteError(404, "File judul terhapus tidak ketemu");
+    await moveDir(from, to);
+    return { slug, from, to };
+  });
+}
+
 export async function createIdea(input: { title: string; project?: string | null; note?: string }) {
   const title = input.title.replace(/[\r\n]+/g, " ").trim();
   if (!title) throw new WriteError(400, "Judul ide kosong");

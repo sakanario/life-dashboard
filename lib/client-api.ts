@@ -100,6 +100,8 @@ export const api = {
     return send<{ file: string; cover: string; bytes: number }>("PUT", wurl(slug) + "/cover", fd);
   },
   removeCover: (slug: string) => send<{ file: string; removedFile: string | null }>("DELETE", wurl(slug) + "/cover", {}),
+  deleteWatch: (slug: string) => send<{ slug: string; from: string; to: string }>("DELETE", wurl(slug), {}),
+  undeleteWatch: (slug: string, from: string) => send<{ slug: string; from: string; to: string }>("POST", wurl(slug) + "/undelete", { from }),
   saveJournal: (
     date: string,
     body: { highlight?: string; summary?: string; habits?: Record<string, "done" | "missed" | null>; base?: { highlight?: string; summary?: string } },
