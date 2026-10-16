@@ -51,6 +51,8 @@ async function Notes({ searchParams }: { searchParams: PageProps<"/notes">["sear
           <div className="locked">🔒 _private/ (disembunyikan)</div>
         </nav>
         <article className="panel doc">
+          {/* key: tiap ganti file / pencarian isinya dipasang ulang → animasi ganti halus */}
+          <div className="doc-swap" key={results ? `q:${q}` : (sel ?? "")}>
           {results ? (
             <>
               <div className="panel-h">
@@ -59,8 +61,8 @@ async function Notes({ searchParams }: { searchParams: PageProps<"/notes">["sear
               </div>
               {results.length ? (
                 <ul className="sresults">
-                  {results.map((r) => (
-                    <li key={r.path}>
+                  {results.map((r, i) => (
+                    <li key={r.path} style={{ "--i": Math.min(i, 12) } as React.CSSProperties}>
                       <Link href={href(r.path)}>
                         <span className="src">
                           {r.path}:{r.line}
@@ -128,6 +130,7 @@ async function Notes({ searchParams }: { searchParams: PageProps<"/notes">["sear
               <p className="muted">Buka file dari pohon di kiri, cari pakai kotak di atas, atau tekan <span className="kbd">Ctrl K</span>.</p>
             </>
           )}
+          </div>
         </article>
       </div>
     </>

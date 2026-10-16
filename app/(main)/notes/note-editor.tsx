@@ -29,6 +29,8 @@ export function NoteDoc({ path, initialEdit, children }: { path: string; initial
   const [busy, setBusy] = useState(false);
   const [conflict, setConflict] = useState<Base | null>(null);
   const [askDiscard, setAskDiscard] = useState(false);
+  // balik dari editor → mode baca masuk halus (pas halaman dibuka biar .doc-swap yang animasiin)
+  const [back, setBack] = useState(false);
   const dirty = editing && base !== null && text !== base.raw;
 
   async function open() {
@@ -75,6 +77,7 @@ export function NoteDoc({ path, initialEdit, children }: { path: string; initial
 
   const close = () => {
     setEditing(false);
+    setBack(true);
     setAskDiscard(false);
     setConflict(null);
     syncEdit(false);
@@ -104,7 +107,7 @@ export function NoteDoc({ path, initialEdit, children }: { path: string; initial
 
   if (!editing)
     return (
-      <>
+      <div className={back ? "note-read" : undefined}>
         <div className="panel-h" style={{ marginBottom: 4 }}>
           <span className="src">{path}</span>
           <button className="btn sm" id="note-edit-btn" style={{ marginLeft: "auto" }} type="button" disabled={busy} onClick={() => void open()}>
@@ -112,7 +115,7 @@ export function NoteDoc({ path, initialEdit, children }: { path: string; initial
           </button>
         </div>
         {children}
-      </>
+      </div>
     );
 
   return (
@@ -164,7 +167,7 @@ export function NoteDoc({ path, initialEdit, children }: { path: string; initial
       </label>
       <textarea id="note-src" className="note-src" value={text} spellCheck={false} onChange={(e) => setText(e.target.value)} />
       {askDiscard ? (
-        <div className="confirm" role="group" aria-label="Buang perubahan">
+        <div className="confirm pop-in" role="group" aria-label="Buang perubahan">
           <p>Perubahan belum disimpan. Buang?</p>
           <div className="row">
             <button className="btn sm danger" type="button" autoFocus onClick={close}>
