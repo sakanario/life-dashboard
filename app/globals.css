@@ -134,6 +134,11 @@ h3{font-size:1rem;font-weight:500}
 .tgroup > summary:hover,.tdone > summary:hover{background:var(--sunk)}
 .tgroup > summary .n{margin-left:auto;font-family:var(--f-mono);font-size:.74rem;color:var(--muted);font-weight:500}
 .tgroup .tasks,.tdone .tasks{padding-left:18px}
+/* drawer proyek: quest di file selain README dikelompokin per file (bisa dilipat) */
+.qg-head{display:flex;align-items:center;gap:8px;margin-top:14px;padding-top:10px;border-top:1px solid var(--line);font-size:.78rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.qg-head .tg-all{margin-left:auto;color:var(--muted);white-space:nowrap;text-transform:none;letter-spacing:0}
+.qg-head .tg-all:hover{color:var(--accent-text)}
+.qg-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.84rem}
 .tdone{margin-top:8px;border-top:1px dashed var(--line);padding-top:6px}
 .tdone > summary{color:var(--muted);font-weight:500}
 .task-empty{margin:4px 0;font-size:.86rem}

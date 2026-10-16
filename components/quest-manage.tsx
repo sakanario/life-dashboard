@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useMemo, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { api } from "@/lib/client-api";
 import { focusFirst } from "./habits";
 import { QuestItem, useJustAdded, type QuestRow } from "./quest";
@@ -11,20 +11,19 @@ import { toast, toastError } from "./toast";
 const editable = (q: QuestRow) =>
   (q.raw ?? q.text).replace(/^\s*[-*+] \[[ xX]\][ \t]+/, "").replace(/(^|\s)done:\d{4}-\d{2}-\d{2}\b/, "").trim();
 
-/**
- * Daftar quest di drawer proyek / kartu goal. Mode `manage` nampilin tombol naik/turun, edit, hapus
- * per quest (REQUIREMENTS §6.3). Urutan = urutan baris di file.
- */
-export function QuestList<T extends QuestRow>({
-  quests,
-  idPrefix,
-  isDone,
-  onToggle,
-  manage,
-  readOnly,
-  readOnlyTitle,
-  fallbackFocus,
-}: {
+const IC_COLLAPSE = <path d="m7 20 5-5 5 5M7 4l5 5 5-5" />;
+const IC_EXPAND = <path d="m7 15 5 5 5-5M7 9l5-5 5 5" />;
+
+/* status buka/tutup grup file di drawer proyek, diinget per browser (key = path file) */
+const QG_KEY = "ld-qg-closed";
+const subscribeQg = (cb: () => void) => {
+  window.addEventListener("storage", cb);
+  window.addEventListener(QG_KEY, cb);
+  return () => { window.removeEventListener("storage", cb); window.removeEventListener(QG_KEY, cb); };
+};
+const qgSnapshot = () => { try { return localStorage.getItem(QG_KEY) || "{}"; } catch { return "{}"; } };
+
+type ListProps<T extends QuestRow> = {
   quests: T[];
   idPrefix: string;
   isDone: (q: T) => boolean;
@@ -33,7 +32,100 @@ export function QuestList<T extends QuestRow>({
   readOnly?: boolean;
   readOnlyTitle?: string;
   fallbackFocus: string; // fokus ke sini kalau quest terakhir dihapus
-}) {
+  /** File utama (README proyek): quest-nya tampil biasa; quest di file lain dikelompokin per file, bisa dilipat. */
+  mainFile?: string;
+};
+
+/**
+ * Daftar quest di drawer proyek / kartu goal. Mode `manage` nampilin tombol naik/turun, edit, hapus
+ * per quest (REQUIREMENTS §6.3). Urutan = urutan baris di file.
+ */
+export function QuestList<T extends QuestRow>(props: ListProps<T>) {
+  const { quests, mainFile } = props;
+  const closedRaw = useSyncExternalStore(subscribeQg, qgSnapshot, () => "{}");
+  const closed = useMemo<Record<string, boolean>>(() => { try { return JSON.parse(closedRaw); } catch { return {}; } }, [closedRaw]);
+  const boxRef = useRef<HTMLDivElement>(null);
+  const bulkTimer = useRef<number>(undefined);
+
+  if (!mainFile) return <Rows {...props} />;
+
+  const main = quests.filter((q) => q.file === mainFile);
+  const groups: { file: string; qs: T[] }[] = [];
+  for (const q of quests) {
+    if (q.file === mainFile) continue;
+    const g = groups.find((x) => x.file === q.file);
+    if (g) g.qs.push(q);
+    else groups.push({ file: q.file, qs: [q] });
+  }
+  if (!groups.length) return <Rows {...props} />;
+
+  const dir = mainFile.slice(0, mainFile.lastIndexOf("/") + 1);
+  const anyOpen = groups.some((g) => !closed[g.file]);
+  const save = (next: Record<string, boolean>) => {
+    try { localStorage.setItem(QG_KEY, JSON.stringify(next)); } catch {}
+    window.dispatchEvent(new Event(QG_KEY));
+  };
+
+  return (
+    <>
+      {main.length ? <Rows {...props} quests={main} /> : null}
+      <div className="qg-head">
+        <span>File lain</span>
+        {groups.length > 1 ? (
+          <button
+            className="btn sm tg-all"
+            type="button"
+            onClick={() => {
+              const next = { ...closed };
+              groups.forEach((g) => (next[g.file] = anyOpen));
+              // grup buka/tutup berurutan (lihat .tgroups.bulk di CSS)
+              const box = boxRef.current;
+              if (box) {
+                box.classList.add("bulk");
+                clearTimeout(bulkTimer.current);
+                bulkTimer.current = window.setTimeout(() => box.classList.remove("bulk"), 300 + groups.length * 40);
+              }
+              save(next);
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              {anyOpen ? IC_COLLAPSE : IC_EXPAND}
+            </svg>
+            {anyOpen ? "Tutup semua" : "Buka semua"}
+          </button>
+        ) : null}
+      </div>
+      <div className="tgroups" ref={boxRef}>
+        {groups.map((g, i) => {
+          const open = g.qs.filter((q) => !props.isDone(q)).length;
+          return (
+            <details
+              key={g.file}
+              className="tgroup"
+              style={{ "--i": i } as React.CSSProperties}
+              open={!closed[g.file]}
+              onToggle={(e) => {
+                const isOpen = (e.currentTarget as HTMLDetailsElement).open;
+                if (isOpen === !closed[g.file]) return;
+                save({ ...closed, [g.file]: !isOpen });
+              }}
+            >
+              <summary aria-label={`${g.file.slice(dir.length)}, ${open} terbuka dari ${g.qs.length}`}>
+                <span className="mono qg-name">{g.file.slice(dir.length)}</span>
+                <span className="n">
+                  {open}/{g.qs.length}
+                </span>
+              </summary>
+              <Rows {...props} quests={g.qs} />
+            </details>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
+function Rows<T extends QuestRow>({ quests, idPrefix, isDone, onToggle, manage, readOnly, readOnlyTitle, fallbackFocus }: ListProps<T>) {
   return (
     <ul className="tasks">
       {quests.map((q, i) =>
