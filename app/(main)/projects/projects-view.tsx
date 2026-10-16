@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { NavIcon } from "@/components/icons";
 import { focusFirst } from "@/components/habits";
 import { AddQuestForm, useQuestToggle } from "@/components/quest";
 import { QuestList } from "@/components/quest-manage";
+import { useFresh, useLeaving } from "@/components/motion";
 import { SlideSeg } from "@/components/slide-seg";
 import { toast } from "@/components/toast";
 import { Bar } from "@/components/ui";
@@ -41,13 +42,13 @@ function useWrite() {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [busy, setBusy] = useState(false);
-  async function run<R>(fn: () => Promise<R>, after?: (r: R) => void) {
+  async function run<R>(fn: () => Promise<R>, after?: (r: R) => void, { refresh = true } = {}) {
     if (busy) return;
     setBusy(true);
     try {
       const r = await fn();
       after?.(r);
-      startTransition(() => router.refresh());
+      if (refresh) startTransition(() => router.refresh());
     } catch (e) {
       toast((e as Error).message);
     } finally {
@@ -84,20 +85,24 @@ export function ProjectsView({
   const list = projects.filter((p) => !p.isArchived && (f === "all" || (!p.isUncat && p.type === f)));
   const opened = projects.find((p) => p.slug === openSlug) ?? null;
 
-  // drawer yang lagi ditutup tetap dirender sebentar biar animasi keluarnya jalan (data disimpan, proyeknya bisa udah ilang)
-  const [leaving, setLeaving] = useState<P | null>(null);
-  const leaveTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  useEffect(() => () => clearTimeout(leaveTimer.current), []);
+  const [leaving, leave] = useLeaving<P>();
 
   const setFilter = (x: Filter) => { setF(x); syncUrl(x, openSlug); };
   const open = (s: string | null) => {
-    clearTimeout(leaveTimer.current);
-    if (!s && opened) {
-      setLeaving(opened);
-      leaveTimer.current = setTimeout(() => setLeaving(null), 260);
-    } else setLeaving(null);
+    leave(s ? null : opened);
     setOpenSlug(s);
     syncUrl(f, s);
+  };
+  // proyek yang dibuka barusan ilang (arsip/hapus): tutup lewat router.replace, bukan replaceState + refresh.
+  // Kalau halaman dibuka dari ?p=, refresh tepat sesudah replaceState bikin Next 16 reload satu halaman → toast Urungkan ilang
+  const router = useRouter();
+  const [, startNav] = useTransition();
+  const closeGone = () => {
+    leave(opened);
+    setOpenSlug(null);
+    const u = new URL(location.href);
+    u.searchParams.delete("p");
+    startNav(() => router.replace(u.pathname + u.search, { scroll: false }));
   };
 
   const restore = (p: P) =>
@@ -110,24 +115,26 @@ export function ProjectsView({
     run(
       () => api.archiveProject(p.slug),
       (r) => {
-        open(null);
+        closeGone();
         toast("Proyek diarsip", `${r.from} → ${r.to}`, {
           label: "Urungkan",
           fn: () => void run(() => api.restoreProject(p.slug, r.prevStatus), (x) => toast("Arsip dibatalin", `${x.from} → ${x.to}`)),
         });
       },
+      { refresh: false },
     );
 
   const remove = (p: P) =>
     run(
       () => api.deleteProject(p.slug),
       (r) => {
-        open(null);
+        closeGone();
         toast("Proyek dihapus", `${r.from} → ${r.to}`, {
           label: "Urungkan",
           fn: () => void run(() => api.undeleteProject(p.slug, r.to, r.from), (x) => toast("Hapus dibatalin", `${x.from} → ${x.to}`)),
         });
       },
+      { refresh: false },
     );
 
   return (
@@ -375,11 +382,7 @@ function Drawer({
   const { busy, run } = useWrite();
   const [status, setStatus] = useState<string | null>(null); // optimistis sampai data server baru datang
   // isi drawer muncul berurutan cuma pas baru dibuka (bukan tiap ganti tab di dalamnya)
-  const [fresh, setFresh] = useState(true);
-  useEffect(() => {
-    const t = setTimeout(() => setFresh(false), 700);
-    return () => clearTimeout(t);
-  }, []);
+  const fresh = useFresh();
   useEffect(() => {
     if (leaving) return;
     const k = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -390,7 +393,7 @@ function Drawer({
   const arc = p.isArchived;
   const shownStatus = status ?? p.status;
   return (
-    <div className={"scrim proj-scrim" + (leaving ? " leaving" : "")} inert={leaving} onClick={(e) => e.target === e.currentTarget && onClose()}>
+    <div className={"scrim slide-scrim" + (leaving ? " leaving" : "")} inert={leaving} onClick={(e) => e.target === e.currentTarget && onClose()}>
       <aside className={"drawer" + (fresh ? " fresh" : "")} role="dialog" aria-modal="true" aria-label={p.title + (arc ? " (diarsip)" : "")}>
         <div className="drawer-h">
           <div>
@@ -541,7 +544,7 @@ function Drawer({
               </button>
             </div>
             {ask ? (
-              <div className="confirm goal-pop" key={ask} id="dconfirm" role="group" aria-labelledby="dconfmsg">
+              <div className="confirm pop-in" key={ask} id="dconfirm" role="group" aria-labelledby="dconfmsg">
                 {ask === "archive" ? (
                   <p id="dconfmsg">
                     Arsipkan <b>{p.title}</b>? Folder dipindah ke <span className="mono">Archive/Projects/{p.slug}/</span>.{" "}

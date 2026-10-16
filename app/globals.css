@@ -608,23 +608,37 @@ a.btn{text-decoration:none;color:inherit}
 .note-src:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 
 /* proyek: halaman dibuka, ganti tab filter → kartu muncul berurutan (grid dipasang ulang per filter) */
-.proj-grid > .proj,.arc-list > li{animation:goal-rise .46s cubic-bezier(.2,.7,.3,1) backwards;animation-delay:calc(var(--i, 0) * 45ms)}
+.proj-grid > .proj,.arc-list > li{animation:ld-rise .46s cubic-bezier(.2,.7,.3,1) backwards;animation-delay:calc(var(--i, 0) * 45ms)}
 .proj-swap{animation:tswap .28s cubic-bezier(.2,.7,.3,1)}
-/* drawer proyek: geser masuk dari kanan, isinya naik berurutan; keluar geser balik */
-.proj-scrim{animation:scrim-in .3s ease}
-.proj-scrim > .drawer{animation:drawer-in .44s cubic-bezier(.16,1,.3,1)}
-.proj-scrim > .drawer.fresh > *{animation:goal-rise .42s cubic-bezier(.2,.7,.3,1) backwards;animation-delay:.3s}
-.proj-scrim > .drawer.fresh > :nth-child(1){animation-delay:.08s}
-.proj-scrim > .drawer.fresh > :nth-child(2){animation-delay:.12s}
-.proj-scrim > .drawer.fresh > :nth-child(3){animation-delay:.16s}
-.proj-scrim > .drawer.fresh > :nth-child(4){animation-delay:.2s}
-.proj-scrim > .drawer.fresh > :nth-child(5){animation-delay:.24s}
-.proj-scrim > .drawer.fresh > :nth-child(6){animation-delay:.27s}
-.proj-scrim.leaving{animation:scrim-out .26s ease forwards}
-.proj-scrim.leaving > .drawer{animation:drawer-out .26s cubic-bezier(.5,0,.75,0) forwards}
-.proj-scrim.leaving > .drawer > *{animation:none}
+/* drawer (proyek, konten): geser masuk dari kanan, isinya naik berurutan; keluar geser balik */
+.slide-scrim{animation:scrim-in .3s ease}
+.slide-scrim > .drawer{animation:drawer-in .44s cubic-bezier(.16,1,.3,1)}
+.slide-scrim > .drawer.fresh > *{animation:ld-rise .42s cubic-bezier(.2,.7,.3,1) backwards;animation-delay:.3s}
+.slide-scrim > .drawer.fresh > :nth-child(1){animation-delay:.08s}
+.slide-scrim > .drawer.fresh > :nth-child(2){animation-delay:.12s}
+.slide-scrim > .drawer.fresh > :nth-child(3){animation-delay:.16s}
+.slide-scrim > .drawer.fresh > :nth-child(4){animation-delay:.2s}
+.slide-scrim > .drawer.fresh > :nth-child(5){animation-delay:.24s}
+.slide-scrim > .drawer.fresh > :nth-child(6){animation-delay:.27s}
+.slide-scrim.leaving{animation:scrim-out .26s ease forwards}
+.slide-scrim.leaving > .drawer{animation:drawer-out .26s cubic-bezier(.5,0,.75,0) forwards}
+.slide-scrim.leaving > .drawer > *{animation:none}
 @keyframes scrim-in{from{opacity:0}}
 @keyframes scrim-out{to{opacity:0}}
 @keyframes drawer-in{from{transform:translateX(104%)}}
 @keyframes drawer-out{to{transform:translateX(104%)}}
 .drawer-foot > .row{display:flex;gap:8px;flex-wrap:wrap}
+/* animasi bersama (proyek, konten, jurnal): naik + muncul, muncul membesar, sorotan oranye */
+.pop-in{animation:ld-pop .26s cubic-bezier(.2,.7,.3,1)}
+@keyframes ld-pop{from{opacity:0;transform:translateY(-4px)}}
+@keyframes ld-rise{from{opacity:0;transform:translateY(12px)}}
+@keyframes ld-in{from{opacity:0;transform:scale(.94) translateY(8px)}}
+@keyframes ld-glow{from{box-shadow:0 0 0 2px var(--accent),0 10px 30px var(--accent-soft)}}
+/* konten: halaman dibuka  → lane lalu kartu muncul berurutan; kartu pindah tahap / ide baru muncul + sorotan */
+.board > .lane{animation:ld-rise .5s cubic-bezier(.2,.7,.3,1) backwards;animation-delay:calc(var(--l, 0) * 70ms)}
+.board .card{animation:ld-rise .42s cubic-bezier(.2,.7,.3,1) backwards}
+.board.fresh .card{animation-delay:calc(var(--l, 0) * 70ms + var(--i, 0) * 45ms + 120ms)}
+.board .card.enter{animation:ld-in .5s cubic-bezier(.2,.9,.3,1.15) backwards,ld-glow 2s ease .35s backwards}
+.board .card.idea-form{animation:ld-pop .26s cubic-bezier(.2,.7,.3,1)}
+.lane .ghost-add{transition:border-color .15s,color .15s}
+.lane .ghost-add:hover{border-color:var(--accent);color:var(--ink)}

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition, type ReactNode } from "react";
 import { focusFirst } from "@/components/habits";
+import { useEnter, useFresh, useLeaving } from "@/components/motion";
 import { toast } from "@/components/toast";
 import { ArcChip } from "@/components/ui";
 import { api } from "@/lib/client-api";
@@ -50,9 +51,14 @@ export function Board({
     if (initialAdd) setAdding(true);
   }
 
+  const [leaving, leave] = useLeaving<C>();
+  const fresh = useFresh(1200); // kartu muncul berurutan cuma pas halaman dibuka
+  const [entered, markEnter] = useEnter(); // kartu yang barusan pindah tahap / ide baru: muncul + sorotan
+
   const stageOf = (c: C) => over[c.slug] ?? c.stage;
   const opened = items.find((c) => c.slug === openSlug) ?? null;
   const open = (s: string | null) => {
+    leave(s ? null : opened);
     setOpenSlug(s);
     syncUrl(s);
   };
@@ -60,6 +66,7 @@ export function Board({
   async function move(c: C, stage: string, refocus = false) {
     if (stageOf(c) === stage) return;
     setOver((o) => ({ ...o, [c.slug]: stage }));
+    markEnter(c.slug);
     if (refocus) focusFirst(["card-" + c.slug]);
     try {
       const r = await api.updateContent(c.slug, { stage });
@@ -75,6 +82,34 @@ export function Board({
           return n;
         });
       });
+    }
+  }
+
+  async function remove(c: C) {
+    try {
+      const r = await api.deleteContent(c.slug);
+      // tutup lewat router.replace (bukan replaceState + refresh): kalau halaman dibuka dari ?c=, refresh tepat
+      // sesudah replaceState bikin Next 16 reload satu halaman (renderedSearch router masih ?c= lama) → toast Urungkan ilang
+      leave(c);
+      setOpenSlug(null);
+      startTransition(() => router.replace("/content", { scroll: false }));
+      toast("Konten dihapus", `${r.from} → ${r.to}`, {
+        label: "Urungkan",
+        fn: async () => {
+          try {
+            const x = await api.undeleteContent(c.slug, r.to);
+            toast("Hapus dibatalin", `${x.from} → ${x.to}`);
+            markEnter(c.slug);
+          } catch (e) {
+            toast((e as Error).message);
+          } finally {
+            startTransition(() => router.refresh());
+          }
+        },
+      });
+    } catch (e) {
+      toast((e as Error).message);
+      startTransition(() => router.refresh());
     }
   }
 
@@ -105,12 +140,13 @@ export function Board({
       </div>
       {notice}
       <div className="board-wrap">
-        <div className="board">
+        <div className={"board" + (fresh ? " fresh" : "")}>
           {STAGES.map(([k, l], si) => {
             const cs = items.filter((c) => stageOf(c) === k);
             return (
               <section
                 key={k}
+                style={{ "--l": si } as React.CSSProperties}
                 className={"lane" + (overLane === k && dragSlug ? " over" : "")}
                 aria-label={l}
                 onDragOver={(e) => {
@@ -134,12 +170,13 @@ export function Board({
                   <b>{l}</b>
                   <span className="n">{cs.length}</span>
                 </div>
-                {k === "idea" && adding ? <IdeaForm projects={projects} onClose={() => setAdding(false)} /> : null}
-                {cs.map((c) => (
+                {k === "idea" && adding ? <IdeaForm projects={projects} onClose={() => setAdding(false)} onCreated={markEnter} /> : null}
+                {cs.map((c, ci) => (
                   <article
                     key={c.slug}
                     id={"card-" + c.slug}
-                    className={"card" + (dragSlug === c.slug ? " dragging" : "")}
+                    style={{ "--i": Math.min(ci, 8) } as React.CSSProperties}
+                    className={"card" + (dragSlug === c.slug ? " dragging" : "") + (entered === c.slug ? " enter" : "")}
                     draggable
                     tabIndex={0}
                     role="button"
@@ -213,18 +250,21 @@ export function Board({
           stage={stageOf(opened)}
           projects={projects}
           onMove={(s) => void move(opened, s)}
+          onDelete={() => remove(opened)}
           onClose={() => {
             open(null);
             focusFirst(["card-" + opened.slug]);
           }}
         />
+      ) : leaving ? (
+        <ContentDrawer key={leaving.slug} c={leaving} stage={stageOf(leaving)} projects={projects} leaving onMove={() => {}} onDelete={async () => {}} onClose={() => {}} />
       ) : null}
     </>
   );
 }
 
 /** Form ide cepat di atas lane Ide. Tetap kebuka habis nyimpen biar bisa nulis beberapa ide berturut-turut. */
-function IdeaForm({ projects, onClose }: { projects: ProjOpt[]; onClose: () => void }) {
+function IdeaForm({ projects, onClose, onCreated }: { projects: ProjOpt[]; onClose: () => void; onCreated: (slug: string) => void }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [title, setTitle] = useState("");
@@ -242,6 +282,7 @@ function IdeaForm({ projects, onClose }: { projects: ProjOpt[]; onClose: () => v
         try {
           const r = await api.createIdea(t, project || null);
           toast("Ide dibuat", r.file);
+          onCreated(r.slug);
           setTitle("");
           startTransition(() => router.refresh());
         } catch (err) {
@@ -293,15 +334,21 @@ function ContentDrawer({
   c,
   stage,
   projects,
+  leaving = false,
   onMove,
+  onDelete,
   onClose,
 }: {
   c: C;
   stage: string;
   projects: ProjOpt[];
+  leaving?: boolean;
   onMove: (stage: string) => void;
+  onDelete: () => Promise<void>;
   onClose: () => void;
 }) {
+  const fresh = useFresh();
+  const [askDelete, setAskDelete] = useState(false);
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [busy, setBusy] = useState(false);
@@ -312,10 +359,11 @@ function ContentDrawer({
     retention: c.stats?.retention ?? "",
   }));
   useEffect(() => {
+    if (leaving) return;
     const k = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     document.addEventListener("keydown", k);
     return () => document.removeEventListener("keydown", k);
-  }, [onClose]);
+  }, [onClose, leaving]);
 
   async function save(patch: Parameters<typeof api.updateContent>[1], msg: string) {
     setBusy(true);
@@ -340,8 +388,8 @@ function ContentDrawer({
   const num = (s: string) => (s.trim() === "" ? null : Number(s.replace(/[.,\s]/g, "")));
 
   return (
-    <div className="scrim" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <aside className="drawer" role="dialog" aria-modal="true" aria-label={c.title}>
+    <div className={"scrim slide-scrim" + (leaving ? " leaving" : "")} inert={leaving} onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <aside className={"drawer" + (fresh ? " fresh" : "")} role="dialog" aria-modal="true" aria-label={c.title}>
         <div className="drawer-h">
           <div>
             <div className="eyebrow">{c.file}</div>
@@ -469,6 +517,53 @@ function ContentDrawer({
           <Link className="btn sm" style={{ alignSelf: "flex-start", marginTop: 6 }} href={`/notes?path=${encodeURIComponent(c.file)}&edit=1`}>
             Edit script / catatan
           </Link>
+        </div>
+
+        <div className="drawer-foot">
+          <button
+            className="btn sm danger"
+            type="button"
+            id="cdelete"
+            aria-expanded={askDelete}
+            aria-controls="cdelbox"
+            onClick={() => {
+              setAskDelete(true);
+              focusFirst(["cdelyes"]);
+            }}
+          >
+            Hapus
+          </button>
+          {askDelete ? (
+            <div className="confirm pop-in" id="cdelbox" role="group" aria-labelledby="cdelmsg">
+              <p id="cdelmsg">
+                Hapus <b>{c.title}</b> dari pipeline? File-nya ga dihapus permanen, cuma dipindah ke <span className="mono">Archive/Deleted/Content/</span>.
+              </p>
+              <div className="row">
+                <button
+                  className="btn sm danger"
+                  type="button"
+                  id="cdelyes"
+                  disabled={busy}
+                  onClick={() => {
+                    setBusy(true);
+                    void onDelete().finally(() => setBusy(false));
+                  }}
+                >
+                  {busy ? "Menghapus…" : "Ya, hapus"}
+                </button>
+                <button
+                  className="btn sm"
+                  type="button"
+                  onClick={() => {
+                    focusFirst(["cdelete"]);
+                    setAskDelete(false);
+                  }}
+                >
+                  Batal
+                </button>
+              </div>
+            </div>
+          ) : null}
         </div>
       </aside>
     </div>

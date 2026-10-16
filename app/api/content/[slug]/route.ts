@@ -1,5 +1,5 @@
 import { asStr, handleWrite, readJsonBody } from "@/lib/api";
-import { updateContent, WriteError, type ContentPatch } from "@/lib/vault/writer";
+import { deleteContent, updateContent, WriteError, type ContentPatch } from "@/lib/vault/writer";
 
 const numOrNull = (v: unknown, key: string) => {
   if (v === null || v === "") return null;
@@ -33,5 +33,14 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ slug: string 
     }
     if (!Object.keys(patch).length) throw new WriteError(400, "Ga ada yang diubah");
     return updateContent(decodeURIComponent(slug), patch);
+  });
+}
+
+/** Hapus konten: file dipindah ke Archive/Deleted/Content/ (bisa diurungkan lewat /undelete). Body: {} */
+export async function DELETE(req: Request, ctx: { params: Promise<{ slug: string }> }) {
+  return handleWrite(async () => {
+    const { slug } = await ctx.params;
+    await readJsonBody(req);
+    return deleteContent(decodeURIComponent(slug));
   });
 }

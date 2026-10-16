@@ -777,6 +777,30 @@ export async function updateContent(slug: string, patch: ContentPatch) {
 }
 
 /** Ide cepat: bikin `Content/<slug>.md` dengan `stage: idea`. */
+/** Hapus konten: file dipindah ke Archive/Deleted/Content/ (bisa diurungkan), ga dihapus permanen. */
+export async function deleteContent(slug: string) {
+  const c = (await getVault()).content.find((x) => x.slug === slug);
+  if (!c) throw new WriteError(404, "Konten tidak ketemu");
+  let to = `Archive/Deleted/Content/${slug}.md`;
+  for (let n = 2; await exists(safeResolve(to)!.abs); n++) to = `Archive/Deleted/Content/${slug}-${n}.md`;
+  return withLocks([c.file, to], async () => {
+    await moveDir(c.file, to); // rename biasa, jalan juga buat file
+    return { slug, from: c.file, to };
+  });
+}
+
+/** Urungkan hapus: Archive/Deleted/Content/<x>.md balik ke Content/<slug>.md. */
+export async function undeleteContent(slug: string, from: string) {
+  if (!/^Archive\/Deleted\/Content\/[^/\\]+\.md$/.test(from)) throw new WriteError(400, "Path konten terhapus tidak valid");
+  if (!/^[^/\\.][^/\\]*$/.test(slug)) throw new WriteError(400, "Slug tidak valid");
+  const to = `Content/${slug}.md`;
+  return withLocks([from, to], async () => {
+    if (!(await exists(resolveMd(from).abs))) throw new WriteError(404, "File konten terhapus tidak ketemu");
+    await moveDir(from, to);
+    return { slug, from, to };
+  });
+}
+
 export async function createIdea(input: { title: string; project?: string | null; note?: string }) {
   const title = input.title.replace(/[\r\n]+/g, " ").trim();
   if (!title) throw new WriteError(400, "Judul ide kosong");
