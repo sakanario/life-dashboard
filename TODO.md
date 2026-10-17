@@ -24,8 +24,8 @@
 - [x] Kode cadangan sekali pakai (mis. 8 kode, disimpan hash-nya) buat kalau HP hilang
 - [x] Halaman `/login`: satu field 6 digit (inputmode numeric, autocomplete `one-time-code`)
 - [x] Tes: kode benar/salah, kode lama, replay, kunci per IP, sesi lama batal setelah ganti secret (`npm test` + tes HTTP manual di salinan app)
-- [ ] **User**: jalanin `node scripts/setup-totp.mjs` sendiri di terminal, scan QR, catat kode cadangan (`APP_PIN` otomatis dihapus dari `.env`)
-- [ ] Rebuild prod: `scripts\uninstall-autostart.ps1 -KeepTask` lalu `Start-ScheduledTask "Life Dashboard"`
+- [x] **User**: jalanin `node scripts/setup-totp.mjs` sendiri di terminal, scan QR, catat kode cadangan (`APP_PIN` otomatis dihapus dari `.env`)
+- [x] Rebuild prod: `scripts\uninstall-autostart.ps1 -KeepTask` lalu `Start-ScheduledTask "Life Dashboard"`
 
 ## 2. Cloudflare Tunnel ke life-dashboard.ksatria.click
 
