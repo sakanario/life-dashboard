@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# log app production (scripts/run-prod.ps1)
+/logs/
+
+# state login authenticator: hash kode cadangan + anti replay (scripts/setup-totp.mjs)
+/.auth/

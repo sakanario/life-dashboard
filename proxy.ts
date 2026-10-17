@@ -5,7 +5,7 @@ import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth";
 const PUBLIC = new Set(["/login", "/api/login"]);
 
 /**
- * Gerbang login PIN (REQUIREMENTS §9): semua halaman & API butuh sesi, termasuk dari localhost.
+ * Gerbang login authenticator (REQUIREMENTS §9): semua halaman & API butuh sesi, termasuk dari localhost.
  * Route tulis juga ngecek ulang sesi di lib/api.ts (jaga-jaga kalau matcher berubah).
  */
 export async function proxy(req: NextRequest) {

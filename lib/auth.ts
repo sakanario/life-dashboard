@@ -1,7 +1,8 @@
 /**
- * Login PIN (REQUIREMENTS §9). Semua device wajib login (keputusan 2026-10-15), sesi = cookie httpOnly 30 hari.
- * Token = `<kadaluarsa>.<HMAC>`; kuncinya diturunin dari APP_PIN (+ SESSION_SECRET kalau ada),
- * jadi ganti PIN = semua sesi lama otomatis batal. Pakai Web Crypto biar jalan di proxy maupun route.
+ * Login authenticator / TOTP (REQUIREMENTS §9). Semua device wajib login (keputusan 2026-10-15), sesi = cookie httpOnly 30 hari.
+ * Token = `<kadaluarsa>.<HMAC>`; kuncinya diturunin dari SESSION_SECRET + TOTP_SECRET,
+ * jadi ganti salah satunya = semua sesi lama otomatis batal. Pakai Web Crypto biar jalan di proxy maupun route.
+ * Sengaja tanpa import biar bisa dites langsung pakai `node --test`.
  */
 
 export const SESSION_COOKIE = "ld_session";
@@ -11,12 +12,15 @@ const enc = new TextEncoder();
 const b64url = (buf: ArrayBuffer) =>
   btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 
-export const configuredPin = () => process.env.APP_PIN?.trim() ?? "";
+export const totpSecret = () => (process.env.TOTP_SECRET ?? "").replace(/[\s=-]/g, "").toUpperCase();
+const sessionSecret = () => process.env.SESSION_SECRET?.trim() ?? "";
+
+/** Dua-duanya wajib ada (secret TOTP min 80 bit, SESSION_SECRET min 32 karakter); kalau belum, app terkunci total. */
+export const authConfigured = () => /^[A-Z2-7]{16,}$/.test(totpSecret()) && sessionSecret().length >= 32;
 
 async function hmacKey(): Promise<CryptoKey | null> {
-  const pin = configuredPin();
-  if (!pin) return null;
-  const raw = await crypto.subtle.digest("SHA-256", enc.encode(`ld-session:${pin}:${process.env.SESSION_SECRET ?? ""}`));
+  if (!authConfigured()) return null;
+  const raw = await crypto.subtle.digest("SHA-256", enc.encode(`ld-session:${sessionSecret()}:${totpSecret()}`));
   return crypto.subtle.importKey("raw", raw, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
 }
 
@@ -33,7 +37,7 @@ function safeEqual(a: string, b: string) {
 
 export async function createSessionToken(now = Date.now()) {
   const key = await hmacKey();
-  if (!key) throw new Error("APP_PIN belum diisi");
+  if (!key) throw new Error("TOTP_SECRET / SESSION_SECRET belum diisi");
   const exp = String(Math.floor(now / 1000) + SESSION_MAX_AGE);
   return `${exp}.${await sign(key, "s:" + exp)}`;
 }
@@ -45,11 +49,4 @@ export async function verifySessionToken(token: string | undefined | null, now =
   const [exp, mac] = token.split(".");
   if (!exp || !mac || !/^\d+$/.test(exp) || Number(exp) * 1000 < now) return false;
   return safeEqual(mac, await sign(key, "s:" + exp));
-}
-
-/** Cek PIN: dua-duanya di-HMAC dulu biar perbandingannya panjang tetap. */
-export async function pinMatches(input: string) {
-  const key = await hmacKey();
-  if (!key) return false;
-  return safeEqual(await sign(key, "p:" + input.trim()), await sign(key, "p:" + configuredPin()));
 }

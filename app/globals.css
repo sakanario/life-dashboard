@@ -670,10 +670,10 @@ a.btn{text-decoration:none;color:inherit}
 .panel-sub{background:var(--sunk);border-radius:var(--r);padding:12px 14px}
 .panel-sub input[type="text"]{max-width:100%}
 
-/* Fase 5: login PIN & editor catatan */
+/* Fase 5: login (authenticator) & editor catatan */
 .login-wrap{min-height:100dvh;display:grid;place-items:center;padding:16px}
 .login{width:min(380px,100%);display:flex;flex-direction:column;gap:18px;padding:24px}
-.login input[type="password"]{border:0;background:var(--field);color:var(--ink);border-radius:var(--r-sm);padding:10px 12px;font:inherit;font-size:1.1rem;letter-spacing:.2em;box-shadow:inset 0 1px 2px rgba(43,35,80,.06)}
+.login input#code{border:0;background:var(--field);color:var(--ink);border-radius:var(--r-sm);padding:10px 12px;font:inherit;font-size:1.1rem;letter-spacing:.2em;box-shadow:inset 0 1px 2px rgba(43,35,80,.06)}
 .login-err{margin:0;color:var(--bad);font-size:.86rem}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .note-editor{display:flex;flex-direction:column;gap:10px}

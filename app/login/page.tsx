@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { configuredPin } from "@/lib/auth";
+import { authConfigured } from "@/lib/auth";
 import { LoginForm } from "./login-form";
 
 /** `next` cuma boleh path di app ini (jangan sampai jadi open redirect ke situs lain). */
@@ -7,7 +7,7 @@ const safeNext = (v: unknown) => (typeof v === "string" && v.startsWith("/") && 
 
 async function Login({ searchParams }: { searchParams: PageProps<"/login">["searchParams"] }) {
   const sp = await searchParams;
-  return <LoginForm next={safeNext(sp.next)} ready={!!configuredPin()} />;
+  return <LoginForm next={safeNext(sp.next)} ready={authConfigured()} />;
 }
 
 export default function Page({ searchParams }: PageProps<"/login">) {

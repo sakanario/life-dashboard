@@ -33,7 +33,7 @@ Browser (laptop / HP)  ──HTTP──►  Next.js (1 proses, localhost:3000)
 | Parsing | `gray-matter` (frontmatter), parser quest & jurnal custom (regex per baris) |
 | File watcher | `chokidar` → invalidasi index in-memory → push ke UI via Server-Sent Events |
 | Editor teks bebas | Textarea / editor markdown ringan (bukan editor utama) |
-| Config | `.env`: `VAULT_PATH`, `APP_PIN` |
+| Config | `.env`: `VAULT_PATH`, `TOTP_SECRET`, `SESSION_SECRET` |
 | Runtime | Node 24 (sudah terpasang) |
 
 Index vault disimpan **di memori** (±200 file → parse ulang dalam milidetik). Kalau nanti data membengkak, boleh tambah SQLite sebagai **cache turunan** yang bisa dibangun ulang dari file — tidak pernah jadi sumber kebenaran.
@@ -350,7 +350,7 @@ updated: 2026-10-15
 | GET | `/api/assets?path=&w=` | serve gambar dari vault (Catatan & cover Watchlist) |
 | GET | `/api/notes?path=&raw=1` | isi mentah + `mtime` dari disk (buat editor) |
 | PUT | `/api/notes?path=` | simpan catatan (body `content`, `baseMtime`; beda `mtime` → 409 + isi terbaru, `force` buat nimpa) |
-| POST | `/api/login`, `/api/logout` | login PIN (cookie sesi 30 hari) / keluar |
+| POST | `/api/login`, `/api/logout` | login kode authenticator / cadangan (cookie sesi 30 hari) / keluar |
 | GET | `/api/events` | SSE: notifikasi file berubah |
 
 ## 8. Aturan Tulis Balik
@@ -365,8 +365,12 @@ updated: 2026-10-15
 
 ## 9. Keamanan
 
-- Default bind `localhost`. **Semua device wajib login PIN** (`APP_PIN`), termasuk localhost (keputusan 2026-10-15: Host header bisa dipalsuin dari LAN, jadi "lokal" ga bisa dipercaya). Sesi = cookie httpOnly 30 hari, ganti PIN = semua sesi batal. `APP_PIN` kosong = app terkunci total
-- Salah PIN 5x dalam 10 menit → login dikunci 10 menit
+- Default bind `localhost`. **Semua device wajib login**, termasuk localhost (keputusan 2026-10-15: Host header bisa dipalsuin dari LAN, jadi "lokal" ga bisa dipercaya)
+- Login = **kode authenticator (TOTP) saja** (keputusan 2026-10-17, metode PIN dihapus): RFC 6238, SHA-1, 6 digit, 30 detik, toleransi ±1 langkah, diverifikasi pakai Web Crypto tanpa library (`lib/totp.ts`). Kode yang sudah dipakai (atau yang lebih lama darinya) ditolak (anti replay)
+- `TOTP_SECRET` + `SESSION_SECRET` di `.env`, diisi `node scripts/setup-totp.mjs` yang dijalanin sendiri di terminal PC (QR `otpauth://` cuma tampil di terminal, tidak pernah lewat app web). Salah satu kosong = app terkunci total
+- Sesi = cookie httpOnly 30 hari, HMAC dari `SESSION_SECRET` + `TOTP_SECRET`: ganti salah satunya = semua sesi batal
+- 8 kode cadangan sekali pakai (10 karakter) buat kalau HP hilang; yang disimpan cuma hash-nya di `.auth/state.json` (bareng langkah TOTP terakhir buat anti replay). Bikin ulang: `node scripts/setup-totp.mjs --backup-codes`
+- Batas salah **per IP** 5x / 10 menit (`CF-Connecting-IP` lewat tunnel; aman dipercaya karena server cuma bind 127.0.0.1) + batas global 50x / jam, biar penyerang dari satu IP tidak bisa ngunci login pemilik
 - `_private/` tidak pernah di-index, dicari, atau dikirim lewat API
 - Vault + app tidak di-deploy ke internet publik
 - `/api/assets` cuma melayani ekstensi gambar, path divalidasi di dalam vault, `_private/` ditolak
@@ -378,7 +382,8 @@ updated: 2026-10-15
   - trigger: saat user login · jalan tersembunyi (tanpa jendela terminal) · restart otomatis kalau crash (retry tiap 1 menit, maks 3x)
 - Script `scripts/uninstall-autostart.ps1` untuk menghapusnya
 - Log ke `logs/app.log` di folder app (rotasi sederhana)
-- Shortcut opsional: buka `http://localhost:3000` di browser setelah login
+- Port production **3999** (dev tetap 3000; port app yang jalan terus diambil dari 3000-an paling belakang, keputusan 2026-10-17). Bind `127.0.0.1`, akses HP lewat ngrok
+- Shortcut opsional: buka `http://localhost:3999` di browser setelah login (belum dibuat)
 
 ## 10. Di luar scope v1
 

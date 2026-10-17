@@ -17,7 +17,7 @@ async function send<T>(method: string, url: string, body: unknown): Promise<T> {
     throw new ApiError(0, "Ga nyambung ke server");
   }
   if (res.status === 401 && url !== "/api/login") {
-    // sesi habis / PIN diganti → ke halaman login, balik lagi ke sini habis masuk
+    // sesi habis / secret diganti → ke halaman login, balik lagi ke sini habis masuk
     // reload penuh (bukan router.push): cache client yang isinya data vault ikut dibuang
     // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     location.assign("/login?next=" + encodeURIComponent(location.pathname + location.search));
@@ -52,7 +52,7 @@ export type WatchPatchBody = {
 };
 
 export const api = {
-  login: (pin: string) => send<{ ok: true }>("POST", "/api/login", { pin }),
+  login: (code: string) => send<{ ok: true; backupLeft: number | null }>("POST", "/api/login", { code }),
   logout: () => send<{ ok: true }>("POST", "/api/logout", {}),
   saveNote: (path: string, content: string, baseMtime: number, force = false) =>
     send<{ path: string; mtime: number }>("PUT", `/api/notes?path=${encodeURIComponent(path)}`, { content, baseMtime, force }),

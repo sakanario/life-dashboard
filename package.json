@@ -5,8 +5,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
+    "start": "next start -p 3999",
+    "lint": "eslint",
+    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test \"tests/*.test.mjs\""
   },
   "dependencies": {
     "chokidar": "^5.0.0",
@@ -28,6 +29,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.4.1",
+    "qrcode": "^1.5.4",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

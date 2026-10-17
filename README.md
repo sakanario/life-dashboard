@@ -9,11 +9,29 @@ npm install
 npm run dev        # http://localhost:3000
 ```
 
+## Auto-start (production, port 3999)
+
+Task Scheduler "Life Dashboard" nyalain `scripts/run-prod.ps1` tiap login Windows, tanpa jendela. Dev server tetap di 3000, jadi dua-duanya bisa jalan barengan. Port app yang jalan terus diambil dari 3000-an paling belakang (3999, 3998, …).
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\install-autostart.ps1            # daftar + jalanin sekarang
+powershell -ExecutionPolicy Bypass -File scripts\uninstall-autostart.ps1 -KeepTask  # matiin server, task tetap ada
+powershell -ExecutionPolicy Bypass -File scripts\uninstall-autostart.ps1            # matiin server + hapus task
+schtasks /Change /TN "Life Dashboard" /Disable                                      # jangan nyala pas login (/Enable buat balikin)
+```
+
+- `schtasks /End` **tidak** cukup buat matiin server (cuma jendela tersembunyinya yang mati); pakai `uninstall-autostart.ps1 -KeepTask`
+- Build ulang otomatis saat start kalau commit `HEAD` beda dari build terakhir (perubahan yang belum di-commit tidak ikut ke-detect). Biar update kepakai: `uninstall-autostart.ps1 -KeepTask` lalu `Start-ScheduledTask "Life Dashboard"`
+- Server mati sendiri → dicoba lagi tiap 1 menit, maks 3x
+- Bind `127.0.0.1` (tidak kebuka ke LAN). Dari HP: `bash scripts/ngrok.sh` (default ke 3999; dev: `bash scripts/ngrok.sh 3000`)
+- Log: `logs/app.log`, dirotasi tiap start kalau > 5 MB (simpan 3 file lama)
+
 `.env`:
 
 ```
 VAULT_PATH=E:\claude-project\life-dashboard
-APP_PIN=           # dipakai mulai Fase 5
+TOTP_SECRET=       # login authenticator, diisi scripts/setup-totp.mjs
+SESSION_SECRET=    # kunci cookie sesi (acak 32 byte), diisi scripts/setup-totp.mjs
 USER_NAME=Satria   # buat sapaan di Hari ini
 ```
 
