@@ -4,7 +4,7 @@ import path from "node:path";
 import { EventEmitter } from "node:events";
 import { connection } from "next/server";
 import { watch, type FSWatcher } from "chokidar";
-import { EXCLUDED_DIRS, isExcluded, toPosix, vaultRoot } from "./paths";
+import { EXCLUDED_DIRS, isExcluded, isVaultFile, toPosix, vaultRoot } from "./paths";
 import { bodyTags, GOAL_DESC_END, num, parseMd, parseQuests, plain, str, strList, wordCount } from "./parse";
 import { isIsoDate } from "./dates";
 import { splitJournalBody } from "./journal-format";
@@ -40,13 +40,17 @@ function ensureWatcher() {
   S.dirty = true;
   S.watcher = watch(root, {
     ignoreInitial: true,
-    ignored: (p: string) => {
+    ignored: (p: string, stats?: fs.Stats) => {
       const rel = toPosix(path.relative(root, p));
-      return !!rel && rel.split("/").some((part) => EXCLUDED_DIRS.has(part));
+      if (rel && rel.split("/").some((part) => EXCLUDED_DIRS.has(part))) return true;
+      // folder tetap ditelusuri; file selain .md/gambar dibuang sebelum di-watch (mis. .kra yang dikunci Krita → EBUSY)
+      return !!stats?.isFile() && !isVaultFile(p);
     },
     awaitWriteFinish: { stabilityThreshold: 120, pollInterval: 40 },
   });
-  S.watcher.on("all", (_ev, p) => {
+  S.watcher.on("error", onWatchError);
+  S.watcher.on("all", (ev, p) => {
+    if ((ev === "add" || ev === "change" || ev === "unlink") && !isVaultFile(p)) return;
     S.dirty = true;
     S.changed.add(toPosix(path.relative(root, p)));
     if (S.timer) clearTimeout(S.timer);
@@ -56,6 +60,21 @@ function ensureWatcher() {
       S.bus.emit("change", { type: "change", paths, at: Date.now() } satisfies VaultEvent);
     }, 150);
   });
+}
+
+/**
+ * Error watcher (EBUSY/EPERM dari file yang lagi dikunci app lain, dll) cukup dicatat,
+ * jangan sampai jadi unhandledRejection. Kode yang sama cuma dicatat sekali per menit.
+ */
+const lastWatchErr = new Map<string, number>();
+function onWatchError(err: unknown) {
+  const e = err as NodeJS.ErrnoException;
+  const code = e?.code ?? "ERR";
+  const now = Date.now();
+  if (now - (lastWatchErr.get(code) ?? 0) < 60_000) return;
+  lastWatchErr.set(code, now);
+  const busy = code === "EBUSY" || code === "EPERM";
+  console.warn(`[vault] watcher ${busy ? "skip file terkunci" : "error"} (${code}): ${e?.path ?? e?.message ?? String(err)}`);
 }
 
 /**
@@ -117,8 +136,13 @@ function walk(root: string): VaultFile[] {
       if (EXCLUDED_DIRS.has(e.name)) continue;
       const abs = path.join(dir, e.name);
       if (e.isDirectory()) rec(abs);
-      else if (e.isFile()) {
-        const st = fs.statSync(abs);
+      else if (e.isFile() && isVaultFile(e.name)) {
+        let st: fs.Stats;
+        try {
+          st = fs.statSync(abs);
+        } catch {
+          continue; // kehapus / kekunci di tengah scan
+        }
         const rel = toPosix(path.relative(root, abs));
         out.push({ path: rel, isMd: rel.toLowerCase().endsWith(".md"), size: st.size, mtime: st.mtimeMs });
       }

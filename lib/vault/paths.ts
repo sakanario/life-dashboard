@@ -5,6 +5,12 @@ export const EXCLUDED_DIRS = new Set([".git", ".obsidian", "_private", ".trash",
 
 export const IMAGE_EXT = new Set([".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"]);
 
+/** App cuma peduli .md + gambar; file lain (.kra, autosave, temp, dll) ga dipantau/di-index. */
+export function isVaultFile(p: string): boolean {
+  const ext = path.extname(p).toLowerCase();
+  return ext === ".md" || IMAGE_EXT.has(ext);
+}
+
 export function vaultRoot(): string {
   const v = process.env.VAULT_PATH;
   if (!v) throw new Error("VAULT_PATH belum diisi di .env");
