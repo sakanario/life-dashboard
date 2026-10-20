@@ -57,12 +57,12 @@ Wajib: akun email itu sudah pakai **2FA**, karena email sekarang jadi salah satu
 
 ## 3. Bikin tunnel
 
-1. Zero Trust → **Networks → Tunnels → Create a tunnel** → pilih **Cloudflared**.
+1. Dashboard utama → **Networking → Tunnels → Create Tunnel** (atau Zero Trust Overview → Recommendations → *Deploy a tunnel*). Pilih **Cloudflared** kalau ditanya.
 2. Nama tunnel: `life-dashboard`.
 3. Di halaman instalasi pilih **Windows**. Muncul perintah berisi token panjang (diawali `eyJ...`).
    - **Jangan jalankan perintah `cloudflared service install`.** Itu butuh admin, sedangkan user Windows ini bukan admin. Tunnel nanti dijalankan oleh `scripts/run-prod.ps1`.
    - Cukup **salin tokennya** (bagian setelah `--token` / `install`).
-4. Lanjut ke tab **Public hostname** (di UI baru bisa bernama *Published application routes*):
+4. Tombol **Continue** baru aktif setelah tunnel tersambung (langkah 5). Setelah itu, di halaman tunnel `life-dashboard` klik **+ Add route** (atau tab **Routes**) → **Published application**:
    - Subdomain: `life-dashboard`
    - Domain: `ksatria.click`
    - Path: kosong
@@ -86,7 +86,8 @@ Setelah ini, kabari Claude.
 
 ## 5. Bagian Claude (di PC)
 
-1. Install `cloudflared` per user: `winget install Cloudflare.cloudflared` (tanpa admin, tanpa Windows service).
+1. `cloudflared.exe` standalone resmi (rilis GitHub `cloudflare/cloudflared`, tanda tangan digital Cloudflare dicek) disimpan di `.tools\cloudflared.exe` (di-gitignore). Bukan MSI/winget (butuh admin) dan bukan `%LOCALAPPDATA%` (tulisan dari Claude desktop app ke AppData dialihkan ke folder virtual, task tidak bisa lihat).
+   Update: download `cloudflared-windows-amd64.exe` versi baru ke `.tools\cloudflared.exe`, restart prod.
 2. `scripts/run-prod.ps1` ikut menjalankan `cloudflared tunnel run --token ...` setelah server siap:
    - restart otomatis kalau tunnel mati,
    - log ke `logs/tunnel.log`,

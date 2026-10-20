@@ -35,10 +35,11 @@ if (Test-Path $envFile) {
 if ($conf["TUNNEL_AUTOSTART"] -eq "0") { Write-Log "TUNNEL_AUTOSTART=0, tunnel tidak dijalankan"; exit 0 }
 if (-not $conf["CLOUDFLARE_TUNNEL_TOKEN"]) { Write-Log "CLOUDFLARE_TUNNEL_TOKEN kosong, tunnel tidak dijalankan"; exit 0 }
 
-# cloudflared: versi standalone per user (tanpa admin), cadangan dari PATH
-$cf = Join-Path $env:LOCALAPPDATA "cloudflared\cloudflared.exe"
+# cloudflared: exe standalone di .tools\ (di-gitignore, tanpa admin), cadangan dari PATH.
+# Sengaja di folder app, bukan %LOCALAPPDATA%: tulisan ke AppData dari app terpaket (MSIX) dialihkan ke folder virtual
+$cf = Join-Path $app ".tools\cloudflared.exe"
 if (-not (Test-Path $cf)) { $cf = (Get-Command cloudflared.exe -ErrorAction SilentlyContinue).Source }
-if (-not $cf) { Write-Log "cloudflared.exe tidak ketemu (lihat docs/cloudflare-tunnel.md)"; exit 1 }
+if (-not $cf) { Write-Log "cloudflared.exe tidak ketemu di .tools\ maupun PATH (lihat docs/cloudflare-tunnel.md)"; exit 1 }
 
 $env:TUNNEL_TOKEN = $conf["CLOUDFLARE_TUNNEL_TOKEN"]
 

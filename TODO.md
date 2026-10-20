@@ -32,17 +32,17 @@
 Langkah lengkap: [docs/cloudflare-tunnel.md](docs/cloudflare-tunnel.md)
 
 Bagian user (butuh akun Cloudflare):
-- [ ] Pastikan `ksatria.click` pakai nameserver Cloudflare (cek record DNS lama ikut kesalin)
-- [ ] Zero Trust → Networks → Tunnels: bikin tunnel `life-dashboard`, public hostname `life-dashboard.ksatria.click` → `http://127.0.0.1:3999`
-- [ ] Simpan token ke `.env` sebagai `CLOUDFLARE_TUNNEL_TOKEN=` (jangan di-commit)
-- [ ] (Opsional, disarankan) Access application buat hostname itu, policy email sendiri; email pakai 2FA
+- [x] Pastikan `ksatria.click` pakai nameserver Cloudflare (cek record DNS lama ikut kesalin)
+- [x] Zero Trust → Networks → Tunnels: bikin tunnel `life-dashboard`, public hostname `life-dashboard.ksatria.click` → `http://127.0.0.1:3999`
+- [x] Simpan token ke `.env` sebagai `CLOUDFLARE_TUNNEL_TOKEN=` (jangan di-commit)
+- [x] (Opsional, disarankan) Access application buat hostname itu, policy email sendiri; email pakai 2FA
 
 Bagian Claude:
-- [ ] Install `cloudflared` (`winget install Cloudflare.cloudflared`; user bukan admin, jadi tidak pakai mode Windows service)
-- [ ] `run-prod.ps1` ikut jalanin `cloudflared tunnel run --token ...` setelah server siap, dengan penjaga restart sendiri + log `logs/tunnel.log`; dilewati kalau token kosong atau `TUNNEL_AUTOSTART=0`
-- [ ] `uninstall-autostart.ps1` ikut matiin cloudflared
+- [x] Install `cloudflared` (`winget install Cloudflare.cloudflared`; user bukan admin, jadi tidak pakai mode Windows service)
+- [x] `run-prod.ps1` ikut jalanin `cloudflared tunnel run --token ...` setelah server siap, dengan penjaga restart sendiri + log `logs/tunnel.log`; dilewati kalau token kosong atau `TUNNEL_AUTOSTART=0`
+- [x] `uninstall-autostart.ps1` ikut matiin cloudflared
 - [ ] Cek: halaman lewat domain, login TOTP, cookie `secure` (header `x-forwarded-proto`), SSE `/api/events` tetap nyambung (ping 25 detik < batas idle 100 detik Cloudflare), cek Origin di endpoint tulis (`lib/api.ts`)
-- [ ] Update README + REQUIREMENTS §9/§9b
+- [x] Update README + REQUIREMENTS §9/§9b
 
 ## 3. Pengerasan tambahan (opsional)
 

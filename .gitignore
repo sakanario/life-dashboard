@@ -45,3 +45,6 @@ next-env.d.ts
 
 # state login authenticator: hash kode cadangan + anti replay (scripts/setup-totp.mjs)
 /.auth/
+
+# cloudflared.exe standalone (scripts/run-tunnel.ps1)
+/.tools/

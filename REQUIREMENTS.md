@@ -372,7 +372,8 @@ updated: 2026-10-15
 - 8 kode cadangan sekali pakai (10 karakter) buat kalau HP hilang; yang disimpan cuma hash-nya di `.auth/state.json` (bareng langkah TOTP terakhir buat anti replay). Bikin ulang: `node scripts/setup-totp.mjs --backup-codes`
 - Batas salah **per IP** 5x / 10 menit (`CF-Connecting-IP` lewat tunnel; aman dipercaya karena server cuma bind 127.0.0.1) + batas global 50x / jam, biar penyerang dari satu IP tidak bisa ngunci login pemilik
 - `_private/` tidak pernah di-index, dicari, atau dikirim lewat API
-- Vault + app tidak di-deploy ke internet publik
+- Vault tidak di-deploy ke cloud. App tetap jalan di PC, dibuka dari internet lewat **Cloudflare Tunnel** di `https://life-dashboard.ksatria.click` (keputusan 2026-10-17; ngrok cuma buat tes dev). Tidak ada port yang dibuka di router
+- Di depan app ada **Cloudflare Access** (policy: email pemilik saja, sesi 24 jam): request tanpa login Access ditolak di Cloudflare, tidak pernah sampai ke PC. Login TOTP app tetap wajib di belakangnya
 - `/api/assets` cuma melayani ekstensi gambar, path divalidasi di dalam vault, `_private/` ditolak
 
 ## 9b. Jalan Otomatis (Auto-start)
@@ -382,7 +383,7 @@ updated: 2026-10-15
   - trigger: saat user login · jalan tersembunyi (tanpa jendela terminal) · restart otomatis kalau crash (retry tiap 1 menit, maks 3x)
 - Script `scripts/uninstall-autostart.ps1` untuk menghapusnya
 - Log ke `logs/app.log` di folder app (rotasi sederhana)
-- Port production **3999** (dev tetap 3000; port app yang jalan terus diambil dari 3000-an paling belakang, keputusan 2026-10-17). Bind `127.0.0.1`, akses HP lewat ngrok
+- Port production **3999** (dev tetap 3000; port app yang jalan terus diambil dari 3000-an paling belakang, keputusan 2026-10-17). Bind `127.0.0.1`, akses HP/internet lewat Cloudflare Tunnel (`scripts/run-tunnel.ps1`, dijalankan `run-prod.ps1`, restart sendiri, log `logs/tunnel.log`)
 - Shortcut opsional: buka `http://localhost:3999` di browser setelah login (belum dibuat)
 
 ## 10. Di luar scope v1
