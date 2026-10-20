@@ -41,7 +41,7 @@ Bagian Claude:
 - [x] Install `cloudflared` (`winget install Cloudflare.cloudflared`; user bukan admin, jadi tidak pakai mode Windows service)
 - [x] `run-prod.ps1` ikut jalanin `cloudflared tunnel run --token ...` setelah server siap, dengan penjaga restart sendiri + log `logs/tunnel.log`; dilewati kalau token kosong atau `TUNNEL_AUTOSTART=0`
 - [x] `uninstall-autostart.ps1` ikut matiin cloudflared
-- [ ] Cek: halaman lewat domain, login TOTP, cookie `secure` (header `x-forwarded-proto`), SSE `/api/events` tetap nyambung (ping 25 detik < batas idle 100 detik Cloudflare), cek Origin di endpoint tulis (`lib/api.ts`)
+- [x] Cek (2026-10-20, HP data seluler: Access → TOTP → dashboard OK): halaman lewat domain, login TOTP, cookie `secure` (header `x-forwarded-proto`), SSE `/api/events` tetap nyambung (ping 25 detik < batas idle 100 detik Cloudflare), cek Origin di endpoint tulis (`lib/api.ts`)
 - [x] Update README + REQUIREMENTS §9/§9b
 
 ## 3. Pengerasan tambahan (opsional)
