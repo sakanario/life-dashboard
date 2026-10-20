@@ -87,7 +87,6 @@ export function Sidebar({ data }: { data: ShellData | null }) {
     <>
       <aside className="side">
         <div className="brand">
-          <div className="brand-mark">S</div>
           <div>
             <b>Life Dashboard</b>
             <div className="mono muted">vault: {data?.vaultName ?? "…"}</div>

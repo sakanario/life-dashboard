@@ -494,7 +494,7 @@ h3{font-weight:700}
 /* closeable side menu */
 .side-body{display:contents}
 .brand{gap:8px;padding-right:0}
-.brand > div:nth-child(2){min-width:0}
+.brand > div:not(.brand-mark){min-width:0}
 .brand b{white-space:nowrap;font-size:.98rem}
 .side-toggle{margin-left:auto;flex:none;width:28px;height:28px;border:0;border-radius:10px;background:var(--sunk);color:var(--ink);display:grid;place-items:center}
 .side-toggle:hover{background:var(--accent-soft)}
