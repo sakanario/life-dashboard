@@ -23,10 +23,15 @@ const subscribeSide = (cb: () => void) => {
 };
 const sideSnapshot = () => document.documentElement.dataset.side !== "closed";
 
+/** Alamat yang lagi dibuka (localhost:3000 dev, localhost:3999 prod, atau domain tunnel). Kosong pas render server. */
+const noSubscribe = () => () => {};
+const hostSnapshot = () => location.host;
+
 export function Sidebar({ data }: { data: ShellData | null }) {
   const pathname = usePathname();
   const router = useRouter();
   const sideOpen = useSyncExternalStore(subscribeSide, sideSnapshot, () => true);
+  const host = useSyncExternalStore(noSubscribe, hostSnapshot, () => "");
   const [palOpen, setPalOpen] = useState(false);
   const [live, setLive] = useState(false);
   const toggleRef = useRef<HTMLButtonElement>(null);
@@ -122,7 +127,7 @@ export function Sidebar({ data }: { data: ShellData | null }) {
               <span className={"dot" + (live ? "" : " off")} />
               {live ? "Vault tersinkron" : "Nyambung ke watcher…"} · <span className="tnum">{data?.fileCount ?? "…"} file</span>
             </div>
-            <div className="sync mono">{live ? "watcher aktif" : "watcher belum nyambung"} · localhost:3000</div>
+            <div className="sync mono">{live ? "watcher aktif" : "watcher belum nyambung"}{host ? ` · ${host}` : ""}</div>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               <button className="btn sm" type="button" onClick={toggleTheme}>
                 Ganti tema
