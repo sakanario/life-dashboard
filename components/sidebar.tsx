@@ -89,7 +89,10 @@ export function Sidebar({ data }: { data: ShellData | null }) {
         <div className="brand">
           <div>
             <b>Life Dashboard</b>
-            <div className="mono muted">vault: {data?.vaultName ?? "…"}</div>
+            <div className="mono muted brand-vault">
+              <span>vault:</span>
+              <span>{data?.vaultName ?? "…"}</span>
+            </div>
           </div>
           <button
             ref={toggleRef}
@@ -124,9 +127,15 @@ export function Sidebar({ data }: { data: ShellData | null }) {
           <div className="side-foot">
             <div className="sync">
               <span className={"dot" + (live ? "" : " off")} />
-              {live ? "Vault tersinkron" : "Nyambung ke watcher…"} · <span className="tnum">{data?.fileCount ?? "…"} file</span>
+              <span className="sync-lines">
+                <span>{live ? "Vault tersinkron" : "Nyambung ke watcher…"}</span>
+                <span className="tnum">{data?.fileCount ?? "…"} file</span>
+              </span>
             </div>
-            <div className="sync mono">{live ? "watcher aktif" : "watcher belum nyambung"}{host ? ` · ${host}` : ""}</div>
+            <div className="sync mono sync-lines">
+              <span>{live ? "watcher aktif" : "watcher belum nyambung"}</span>
+              {host ? <span>{host}</span> : null}
+            </div>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               <button className="btn sm" type="button" onClick={toggleTheme}>
                 Ganti tema
