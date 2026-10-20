@@ -76,7 +76,8 @@ export function JournalForm({
         void save();
       }}
       onKeyDown={(e) => {
-        if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+        // Ctrl S (Cmd S di Mac) simpan; preventDefault biar dialog "Save page" browser ga muncul
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
           e.preventDefault();
           void save();
         }
@@ -123,7 +124,7 @@ export function JournalForm({
       <div className="jfoot">
         <span className="hint" aria-live="polite">
           {wc(sum)} kata · {draft ? "belum disimpan" : savedAt ? `terakhir disimpan ${savedAt}` : "belum disimpan"}
-          <span className="kbd" style={{ marginLeft: 8 }}>Ctrl Enter</span>
+          <span className="kbd" style={{ marginLeft: 8 }}>Ctrl S</span>
         </span>
         <button className="btn primary" type="submit" disabled={!draft || saving}>
           {saving ? "Nyimpen…" : "Simpan"}
