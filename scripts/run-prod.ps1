@@ -50,6 +50,17 @@ if (-not (Test-Path (Join-Path $app ".next\BUILD_ID")) -or ($head -and $head -ne
   if ($head) { Set-Content -Path $stamp -Value $head -Encoding ascii }
 }
 
+# Cloudflare Tunnel (docs/cloudflare-tunnel.md): jalan di proses sendiri, nunggu server siap.
+# Dilewati sendiri kalau CLOUDFLARE_TUNNEL_TOKEN kosong / TUNNEL_AUTOSTART=0. Cuma satu yang jalan.
+$tunnelRunning = Get-CimInstance Win32_Process -Filter "Name = 'powershell.exe'" |
+  Where-Object { $_.CommandLine -like "*run-tunnel.ps1*" }
+if (-not $tunnelRunning) {
+  Start-Process powershell.exe -WindowStyle Hidden -ArgumentList @(
+    "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "`"$(Join-Path $PSScriptRoot 'run-tunnel.ps1')`"", "-Port", $Port
+  )
+  Write-Log "tunnel supervisor dijalankan (lihat logs\tunnel.log)"
+}
+
 $retries = 3
 $try = 0
 while ($true) {

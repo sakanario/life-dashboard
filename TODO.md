@@ -29,6 +29,8 @@
 
 ## 2. Cloudflare Tunnel ke life-dashboard.ksatria.click
 
+Langkah lengkap: [docs/cloudflare-tunnel.md](docs/cloudflare-tunnel.md)
+
 Bagian user (butuh akun Cloudflare):
 - [ ] Pastikan `ksatria.click` pakai nameserver Cloudflare (cek record DNS lama ikut kesalin)
 - [ ] Zero Trust → Networks → Tunnels: bikin tunnel `life-dashboard`, public hostname `life-dashboard.ksatria.click` → `http://127.0.0.1:3999`

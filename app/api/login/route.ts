@@ -31,7 +31,11 @@ export async function POST(req: Request) {
   }
 
   clearFails(ip);
-  const https = req.headers.get("x-forwarded-proto") === "https" || new URL(req.url).protocol === "https:";
+  // lewat Cloudflare Tunnel: x-forwarded-proto / cf-visitor bilang https walau cloudflared nyambung ke app pakai http
+  const https =
+    req.headers.get("x-forwarded-proto") === "https" ||
+    (req.headers.get("cf-visitor") ?? "").includes('"https"') ||
+    new URL(req.url).protocol === "https:";
   (await cookies()).set(SESSION_COOKIE, await createSessionToken(), {
     httpOnly: true,
     sameSite: "lax",

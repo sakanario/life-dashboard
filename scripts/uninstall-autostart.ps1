@@ -14,6 +14,14 @@ Get-CimInstance Win32_Process -Filter "Name = 'powershell.exe'" |
   Where-Object { $_.CommandLine -like "*run-prod.ps1*" } |
   ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue; Write-Host "supervisor dimatiin (PID $($_.ProcessId))" }
 
+# tunnel: supervisor-nya dulu (run-tunnel.ps1), baru cloudflared yang dia jalanin
+Get-CimInstance Win32_Process -Filter "Name = 'powershell.exe'" |
+  Where-Object { $_.CommandLine -like "*run-tunnel.ps1*" } |
+  ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue; Write-Host "tunnel supervisor dimatiin (PID $($_.ProcessId))" }
+Get-CimInstance Win32_Process -Filter "Name = 'cloudflared.exe'" |
+  Where-Object { $_.CommandLine -like "*tunnel*run*" } |
+  ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue; Write-Host "cloudflared dimatiin (PID $($_.ProcessId))" }
+
 # lalu node yang masih megang port
 Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue |
   Select-Object -ExpandProperty OwningProcess -Unique |
