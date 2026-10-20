@@ -869,7 +869,7 @@ export type ContentPatch = {
   stats?: { views?: number | null; comments?: number | null; retention?: string | null };
 };
 
-/** Ubah frontmatter konten per field. Masuk review/done & `published` kosong → diisi hari ini. */
+/** Ubah frontmatter konten per field. Masuk done & `published` kosong → diisi hari ini. */
 export async function updateContent(slug: string, patch: ContentPatch) {
   const v = await getVault();
   const c = v.content.find((x) => x.slug === slug);

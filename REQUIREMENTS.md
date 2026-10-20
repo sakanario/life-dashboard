@@ -217,11 +217,11 @@ File lain di folder proyek tetap catatan bebas; quest di file-file itu juga ikut
 ```markdown
 ---
 title: 19 Dollar
-stage: done      # idea | script | storyboard | shotlist | rekaman | edit | upload | review | done
+stage: done      # idea | script | done | archived  (disederhanain 2026-10-20)
 platform: [tiktok, ig]
 project: chat-overlay
 published: 2026-07-20
-stats: { views: 1200, retention: "40% @3s" }   # diisi di tahap review
+stats: { views: 1200, retention: "40% @3s" }   # diisi setelah upload (review 48 jam)
 ---
 (script / storyboard / catatan)
 ```
@@ -283,7 +283,8 @@ updated: 2026-10-15
 ### 6.4 Content Pipeline
 - Kanban per `stage`, drag-drop pindah stage (ubah frontmatter)
 - Tambah ide cepat (bikin file `stage: idea`)
-- Detail: edit script/catatan, isi stats saat review
+- Detail: edit script/catatan, isi stats setelah upload (review 48 jam)
+- Alur: **Ide → Script → Done → Archived**. Masuk Done & `published` kosong → diisi hari ini. Badge menu Konten = yang belum Done/Archived
 
 ### 6.5 Journal & Habit
 - Kalender/heatmap: hari ada jurnal, intensitas = panjang ringkasan
@@ -343,7 +344,7 @@ updated: 2026-10-15
 | POST | `/api/projects/:slug/archive`, `/api/projects/:slug/restore` | arsip / pulihkan (update frontmatter + pindah folder) |
 | PATCH | `/api/frontmatter` | ubah field frontmatter file mana pun (stage konten, ...). Status proyek & goal pakai endpoint masing-masing |
 | POST | `/api/content` | ide cepat: bikin `Content/<slug>.md` dengan `stage: idea` |
-| PATCH | `/api/content/:slug` | ubah stage (drag-drop), platform, project, published, stats. Masuk `review`/`done` & `published` kosong → diisi hari ini |
+| PATCH | `/api/content/:slug` | ubah stage (drag-drop), platform, project, published, stats. Masuk `done` & `published` kosong → diisi hari ini |
 | GET | `/api/watchlist` | daftar judul |
 | POST / PATCH | `/api/watchlist`, `/api/watchlist/:slug` | tambah judul / update progress, status, rating |
 | PUT / DELETE | `/api/watchlist/:slug/cover` | upload (multipart) / hapus cover |

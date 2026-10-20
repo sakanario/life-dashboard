@@ -1,5 +1,6 @@
 import "server-only";
 import { getVault } from "./index";
+import { CLOSED_STAGES } from "./content-format";
 import { addDays, dayDiff, fromIso, iso, savedLabel, todayIso } from "./dates";
 import { journalPath } from "./journal-format";
 import type { HabitState, JournalEntry, Project, Quest, VaultIndex } from "./types";
@@ -55,7 +56,7 @@ export async function getShell() {
     counts: {
       today: liveQuests(v).filter((q) => !q.done).length,
       projects: v.projects.filter((p) => p.status === "active").length,
-      content: v.content.filter((c) => c.stage !== "done").length,
+      content: v.content.filter((c) => !CLOSED_STAGES.includes(c.stage)).length,
       watch: v.watch.filter((w) => w.status === "watching").length,
     } satisfies NavCounts,
     palette: [
