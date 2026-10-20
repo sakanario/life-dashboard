@@ -284,7 +284,7 @@ updated: 2026-10-15
 - Kanban per `stage`, drag-drop pindah stage (ubah frontmatter)
 - Tambah ide cepat (bikin file `stage: idea`)
 - Detail: edit script/catatan, isi stats setelah upload (review 48 jam)
-- Alur: **Ide → Script → Done → Archived**. Masuk Done & `published` kosong → diisi hari ini. Badge menu Konten = yang belum Done/Archived
+- Alur: **Ide → Script → Done → Archived**. Script = semua proses produksi (nulis script, storyboard, rekaman, sampai editing); Done = udah diupload; Archived = ga dilanjutin. Masuk Done & `published` kosong → diisi hari ini. Badge menu Konten = yang belum Done/Archived
 
 ### 6.5 Journal & Habit
 - Kalender/heatmap: hari ada jurnal, intensitas = panjang ringkasan
