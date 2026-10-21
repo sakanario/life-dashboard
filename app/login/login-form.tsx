@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { api } from "@/lib/client-api";
+import { Logo } from "@/components/logo";
 
 export function LoginForm({ next, ready }: { next: string; ready: boolean }) {
   const [code, setCode] = useState("");
@@ -16,7 +17,7 @@ export function LoginForm({ next, ready }: { next: string; ready: boolean }) {
   return (
     <section className="panel login" aria-labelledby="login-h">
       <div className="brand" style={{ padding: 0 }}>
-        <div className="brand-mark">S</div>
+        <Logo size={44} />
         <div>
           <b>Life Dashboard</b>
           <div className="mono muted">login</div>

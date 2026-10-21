@@ -22,6 +22,7 @@ export async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  // aset build Next, favicon & background ga perlu login (isinya bukan data vault)
-  matcher: ["/((?!_next/static|_next/image|favicon\\.ico$|super-cub-bg\\.jpg$).*)"],
+  // aset build Next, ikon app, manifest & background ga perlu login (isinya bukan data vault).
+  // manifest diambil browser tanpa cookie, jadi wajib publik.
+  matcher: ["/((?!_next/static|_next/image|favicon\\.ico$|icon\\.svg$|apple-icon\\.png$|icon-[\\w-]+\\.png$|manifest\\.webmanifest$|super-cub-bg\\.jpg$).*)"],
 };

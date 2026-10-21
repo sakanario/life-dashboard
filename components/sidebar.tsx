@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { NAV, NavIcon, PanelIcon } from "./icons";
+import { Logo } from "./logo";
 import { api } from "@/lib/client-api";
 import { Palette, type PaletteItem } from "./palette";
 
@@ -87,6 +88,7 @@ export function Sidebar({ data }: { data: ShellData | null }) {
     <>
       <aside className="side">
         <div className="brand">
+          <Logo />
           <div>
             <b>Life Dashboard</b>
             <div className="mono muted brand-vault">
